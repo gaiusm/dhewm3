@@ -1,5 +1,13 @@
 # ABOUT
 
+_pybot-dhewm3_ is a fork of the dhewm3 project which is experimental code
+to demonstrate and develop python bots within doom3.  The python bots
+are forked (potentially running on a different processor) and they
+communicate via simple remote procedure calls.  The project allows for
+experiementing and implementing different bot API calls.
+
+The original README.md continues here:
+
 _dhewm 3_ is a _Doom 3_ GPL source port, know to work on at least Windows, Linux, Mac OS X and FreeBSD.
 
 The goal of _dhewm 3_ is bring _DOOM 3_ with the help of SDL to all suitable
