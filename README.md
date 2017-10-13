@@ -1,6 +1,6 @@
 # ABOUT
 
-_pybot-dhewm3_ is a fork of the dhewm3 project which is experimental code
+_pybot-dhewm3_ is a fork of the dhewm3 project.  It is experimental code
 to demonstrate and develop python bots within doom3.  The python bots
 are forked (potentially running on a different processor) and they
 communicate via simple remote procedure calls.  The project allows for
