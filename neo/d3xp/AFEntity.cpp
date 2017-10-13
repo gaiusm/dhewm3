@@ -1211,7 +1211,10 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 #endif
 		list[i]->GetRenderEntity()->noShadow = true;
 		list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-		list[i]->PostEventSec( &EV_Remove, 4.0f );
+		if (g_gore.GetBool ())
+		  list[i]->PostEventSec( &EV_Remove, 30.0f );
+		else
+		  list[i]->PostEventSec( &EV_Remove, 4.0f );
 	}
 }
 
@@ -1251,18 +1254,34 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	if ( g_bloodEffects.GetBool() ) {
 		if ( gameLocal.time > gameLocal.GetGibTime() ) {
 			gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
-			SpawnGibs( dir, damageDefName );
-			renderEntity.noShadow = true;
-			renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-			StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
-			gibbed = true;
+			{
+			  
+			  /* start of gaius change.  */
+			  int mult = 1;
+			  int i;
+			  
+			  if (g_gore.GetBool ())
+			    mult = 40;
+
+			  for (i=0; i<mult; i++)
+			    {
+			       SpawnGibs( dir, damageDefName );
+			       renderEntity.noShadow = true;
+			       renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
+			       StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
+			       gibbed = true;
+			    }
+			}
 		}
 	} else {
 		gibbed = true;
 	}
 
 
-	PostEventSec( &EV_Gibbed, 4.0f );
+        if (g_gore.GetBool ())
+	  PostEventSec( &EV_Gibbed, 30.0f );
+	else
+	  PostEventSec( &EV_Gibbed, 4.0f );
 }
 
 /*

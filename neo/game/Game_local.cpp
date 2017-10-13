@@ -176,6 +176,7 @@ void idGameLocal::Clear( void ) {
 
 	serverInfo.Clear();
 	numClients = 0;
+	numPyClients = 0;  // gaius
 	for ( i = 0; i < MAX_CLIENTS; i++ ) {
 		userInfo[i].Clear();
 		persistentPlayerInfo[i].Clear();
@@ -330,6 +331,13 @@ void idGameLocal::Init( void ) {
 	gamestate = GAMESTATE_NOMAP;
 
 	Printf( "...%d aas types\n", aasList.Num() );
+
+#if 1
+	/*
+	 *  Gaius' change to start the bot superServer
+	 */
+
+#endif
 }
 
 /*
@@ -802,10 +810,16 @@ idGameLocal::GetUserInfo
 ============
 */
 const idDict* idGameLocal::GetUserInfo( int clientNum ) {
-	if ( entities[ clientNum ] && entities[ clientNum ]->IsType( idPlayer::Type ) ) {
-		return &userInfo[ clientNum ];
-	}
-	return NULL;
+  if (clientNum < MAX_CLIENTS)
+    {
+      if ( entities[ clientNum ] && entities[ clientNum ]->IsType( idPlayer::Type ) ) {
+	return &userInfo[ clientNum ];
+      }
+    }
+  else
+    Error ("clientNum (%d) exceeds MAX_CLIENTS (%d)", clientNum, MAX_CLIENTS);
+
+  return NULL;
 }
 
 /*
@@ -827,6 +841,48 @@ void idGameLocal::SetServerInfo( const idDict &_serverInfo ) {
 		outMsg.WriteDeltaDict( gameLocal.serverInfo, NULL );
 		networkSystem->ServerSendReliableMessage( -1, outMsg );
 	}
+}
+
+
+/*
+ *  FindNoOfPythonClients - returns the number of Python clients required.
+ *  (gaius)
+ */
+
+int idGameLocal::FindNoOfPythonClients (void)
+{
+  int n = 0;
+
+  for (int i = 0; i < mapFile->GetNumEntities(); i++)
+    {
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+
+      const char *classname;
+      if (mapEnt->epairs.GetString ("classname", "", &classname)
+	  && ((strcmp (classname, "python_doommarine") == 0)
+	      || (strcmp (classname, "python_doommarine_mp") == 0)))
+	  n++;
+    }
+  return n;
+}
+
+
+/*
+ *  FindPenMap - return the penmap filename.
+ *  (gaius)
+ */
+
+const char *idGameLocal::FindPenMap (void)
+{
+  for (int i = 0; i < mapFile->GetNumEntities(); i++)
+    {
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+
+      const char *mapname;
+      if (mapEnt->epairs.GetString ("penmap", "", &mapname))
+        return mapname;
+    }
+  return "";
 }
 
 
@@ -864,6 +920,7 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	collisionModelManager->LoadMap( mapFile );
 
 	numClients = 0;
+	numPyClients = 0;  // gaius
 
 	// initialize all entities for this game
 	memset( entities, 0, sizeof( entities ) );
@@ -941,7 +998,15 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	if ( !sameMap ) {
 		mapFile->RemovePrimitiveData();
 	}
+	numPyClients = FindNoOfPythonClients ();
 }
+
+
+int idGameLocal::GetNumPyClients (void)
+{
+  return numPyClients;
+}
+
 
 /*
 ===================
@@ -1816,21 +1881,42 @@ void idGameLocal::InitScriptForMap( void ) {
 	}
 }
 
+
 /*
 ===========
 idGameLocal::SpawnPlayer
 ============
 */
-void idGameLocal::SpawnPlayer( int clientNum ) {
+void idGameLocal::SpawnPlayer( int clientNum )
+{
+  SpawnPlayer (clientNum, 0, false);
+}
+
+
+/*
+===========
+idGameLocal::SpawnPlayer
+============
+*/
+void idGameLocal::SpawnPlayer( int clientNum, int pythonEntNum, bool pythonBot ) {
 	idEntity	*ent;
 	idDict		args;
 
 	// they can connect
-	Printf( "SpawnPlayer: %i\n", clientNum );
+	Printf ("SpawnPlayer: %i\n", clientNum);
 
-	args.SetInt( "spawn_entnum", clientNum );
-	args.Set( "name", va( "player%d", clientNum + 1 ) );
-	args.Set( "classname", isMultiplayer ? "player_doommarine_mp" : "player_doommarine" );
+	args.SetInt ("spawn_entnum", clientNum);
+	args.Set ("name", va( "player%d", clientNum + 1 ) );
+	args.Set ("classname", isMultiplayer ? "player_doommarine_mp" : "player_doommarine");
+	args.SetBool ("pythonBot", pythonBot);  // gaius
+	if (pythonBot)
+	  {
+	    args.Set ("python_name", va ("python_doommarine_%d", clientNum));
+	    args.SetInt ("python_entnum", pythonEntNum);
+	  }
+	else
+	  args.SetInt ("python_entnum", 0);
+
 	if ( !SpawnEntityDef( args, &ent ) || !entities[ clientNum ] ) {
 		Error( "Failed to spawn player as '%s'", args.GetString( "classname" ) );
 	}
@@ -1846,6 +1932,7 @@ void idGameLocal::SpawnPlayer( int clientNum ) {
 
 	mpGame.SpawnPlayer( clientNum );
 }
+
 
 /*
 ================
@@ -2176,7 +2263,7 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 		gameRenderWorld->DebugClearLines( time + 1 );
 
 		// set the user commands for this frame
-		memcpy( usercmds, clientCmds, numClients * sizeof( usercmds[ 0 ] ) );
+		memcpy( usercmds, clientCmds, (numClients - numPyClients) * sizeof( usercmds[ 0 ] ) );
 
 		if ( player ) {
 			player->Think();
@@ -2214,7 +2301,7 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 		gameRenderWorld->DebugClearPolygons( time );
 
 		// set the user commands for this frame
-		memcpy( usercmds, clientCmds, numClients * sizeof( usercmds[ 0 ] ) );
+		memcpy( usercmds, clientCmds, (numClients - numPyClients) * sizeof( usercmds[ 0 ] ) );
 
 		// free old smoke particles
 		smokeParticles->FreeSmokes();
@@ -3005,6 +3092,17 @@ idEntity *idGameLocal::SpawnEntityType( const idTypeInfo &classdef, const idDict
 	return static_cast<idEntity *>(obj);
 }
 
+
+static void mystop (void) {}
+
+void idGameLocal::mycheck (bool value)
+{
+  bool pythonBot = spawnArgs.GetBool ( "pythonBot" );
+
+  assert (value == pythonBot);
+}
+
+
 /*
 ===================
 idGameLocal::SpawnEntityDef
@@ -3019,7 +3117,8 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 	idTypeInfo	*cls;
 	idClass		*obj;
 	idStr		error;
-	const char  *name;
+	const char *name;
+	bool pythonBot;   /* python can control either a player or a monster.  */
 
 	if ( ent ) {
 		*ent = NULL;
@@ -3032,6 +3131,19 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 	}
 
 	spawnArgs.GetString( "classname", NULL, &classname );
+# if 1
+	pythonBot = spawnArgs.GetBool ( "pythonBot" );  // gaius
+	mycheck (pythonBot);
+
+	/*
+	 * gaius' addition, this could be implemented in a cleaner way
+	 * but it serves as a proof of concept.
+	 */
+	if (strcmp (classname, "python_demon_hellknight") == 0) {
+	  classname = "monster_demon_hellknight";
+	  pythonBot = true;
+	}
+#endif
 
 	const idDeclEntityDef *def = FindEntityDef( classname, false );
 
@@ -3041,6 +3153,8 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 	}
 
 	spawnArgs.SetDefaults( &def->dict );
+	spawnArgs.SetBool ("pythonBot", pythonBot);   // pass this value to the instance
+	mycheck (pythonBot);
 
 	// check if we should spawn a class object
 	spawnArgs.GetString( "spawnclass", NULL, &spawn );
@@ -3058,10 +3172,14 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 			return false;
 		}
 
-		obj->CallSpawn();
+		obj->CallSpawn ();
 
 		if ( ent && obj->IsType( idEntity::Type ) ) {
 			*ent = static_cast<idEntity *>(obj);
+		}
+		if (obj->IsType( idPlayer::Type)) {
+		  idPlayer *p = static_cast<idPlayer *>(obj);
+		  p->RegisterPython (pythonBot);
 		}
 
 		return true;
@@ -3130,6 +3248,7 @@ bool idGameLocal::InhibitEntitySpawn( idDict &spawnArgs ) {
 	}
 
 	const char *name;
+
 	if ( g_skill.GetInteger() == 3 ) {
 		name = spawnArgs.GetString( "classname" );
 		if ( idStr::Icmp( name, "item_medkit" ) == 0 || idStr::Icmp( name, "item_medkit_small" ) == 0 ) {
@@ -3355,6 +3474,38 @@ idEntity *idGameLocal::FindEntity( const char *name ) const {
 
 /*
 =============
+idGameLocal::DumpEntities
+
+Searches all active entities for the next one using the specified entityDef.
+
+Searches beginning at the entity after from, or the beginning if NULL
+NULL will be returned if the end of the list is reached.
+=============
+*/
+void idGameLocal::DumpEntities (void) const
+{
+  idEntity	*ent;
+
+  Printf ("DumpEntities\n");
+  Printf ("============\n");
+  ent = spawnedEntities.Next();
+  for ( ; ent != NULL; ent = ent->spawnNode.Next() )
+    {
+      assert( ent );
+      {
+	idVec3 v = ent->GetPhysics()->GetOrigin();
+	Printf ("Entity %d %s has location %g, %g, %g\n",
+		ent->entityNumber,
+		ent->GetEntityDefName(), v.x, v.y, v.z);
+      }
+    }
+  Printf ("===================\n");
+  Printf ("End of DumpEntities\n");
+}
+
+
+/*
+=============
 idGameLocal::FindEntityUsingDef
 
 Searches all active entities for the next one using the specified entityDef.
@@ -3374,6 +3525,12 @@ idEntity *idGameLocal::FindEntityUsingDef( idEntity *from, const char *match ) c
 
 	for ( ; ent != NULL; ent = ent->spawnNode.Next() ) {
 		assert( ent );
+		{
+		  idVec3 v = ent->GetPhysics()->GetOrigin();
+		  Printf ("Entity %d %s has location %g, %g, %g\n",
+			  ent->entityNumber,
+			  ent->GetEntityDefName(), v.x, v.y, v.z);
+		}
 		if ( idStr::Icmp( ent->GetEntityDefName(), match ) == 0 ) {
 			return ent;
 		}
@@ -4140,6 +4297,100 @@ void idGameLocal::RandomizeInitialSpawns( void ) {
 	currentInitialSpot = 0;
 }
 
+
+bool idGameLocal::samePosition (idVec3 a, idVec3 b)
+{
+  Printf( "begin a (%g,%g,%g)\n",
+          a.x, a.y, a.z);
+  Printf( "begin b (%g,%g,%g)\n",
+          b.x, b.y, b.z);
+
+  a.z = 0.0;
+  b.z = 0.0;
+  Printf( "end a (%g,%g,%g)\n",
+          a.x, a.y, a.z);
+  Printf( "end b (%g,%g,%g)\n",
+          b.x, b.y, b.z);
+
+  return a == b;
+}
+
+
+/*
+ *  GetEntityOrigin -
+ */
+
+idVec3 idGameLocal::GetEntityOrigin (int entNum)
+{
+  idVec3 current;
+
+  assert (entNum < mapFile->GetNumEntities ());
+
+  idMapEntity *mapEnt = mapFile->GetEntity (entNum);
+
+  mapEnt->epairs.GetVector ("origin", "", current);
+  return current;
+}
+
+
+/*
+ *  DumpEntityOrigin -
+ */
+
+void idGameLocal::DumpEntityOrigin (void)
+{
+  Printf ("DumpEntryOrigin\n");
+  Printf ("===============\n");
+
+  for (int i = 0; i < mapFile->GetNumEntities (); i++)
+    {
+      idVec3 v;
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+      mapEnt->epairs.GetVector ("origin", "", v);
+      Printf ("Map entity %d has origin %g, %g, %g\n",
+	      i, v.x, v.y, v.z);
+    }
+  Printf ("======================\n");
+  Printf ("End of DumpEntryOrigin\n");
+}
+
+
+
+/*
+ *  SelectPythonSpawnPoint
+ */
+
+idEntity *idGameLocal::SelectPythonSpawnPoint ( idPlayer *player, bool pythonBot, int pythonEntNum )
+{
+  int i;
+  idEntity *ent = NULL;
+  idVec3 a, b;
+  int numClients = 1;
+
+  DumpEntities ();
+  DumpEntityOrigin ();
+
+  i = pythonEntNum+numClients;   // --fixme-- require clientNum rather than +1  gaius (assumes one human)
+  while (true)
+    {
+      ent = FindEntityUsingDef (ent, "player_doommarine");
+      assert (ent != NULL);
+      if (i == 0)
+	{
+	  Printf ("entity selected to spawn python player is = (entity id %d, entity def %d)  name = %s\n",
+		  ent->entityNumber, ent->entityDefNumber, ent->GetEntityDefName());
+	  ent->GetPhysics()->SetOrigin (GetEntityOrigin (ent->entityNumber+numClients));
+	  idVec3 v = ent->GetPhysics()->GetOrigin();
+	  Printf ("  now has location %g, %g, %g\n",
+		  v.x, v.y, v.z);
+	  return ent;
+	}
+      i--;
+    }
+  assert (false);
+}
+
+
 /*
 ===========
 idGameLocal::SelectInitialSpawnPoint
@@ -4149,14 +4400,16 @@ upon map restart, initial spawns are used (randomized ordered list of spawns fla
   if there are more players than initial spots, overflow to regular spawning
 ============
 */
-idEntity *idGameLocal::SelectInitialSpawnPoint( idPlayer *player ) {
-	int				i, j, which;
+idEntity *idGameLocal::SelectInitialSpawnPoint( idPlayer *player, bool pythonBot, int pythonEntNum ) {
+	int			i, j, which;
 	spawnSpot_t		spot;
 	idVec3			pos;
 	float			dist;
 	bool			alone;
 
-	if ( !isMultiplayer || !spawnSpots.Num() ) {
+	if (pythonBot)
+	  return SelectPythonSpawnPoint (player, pythonBot, pythonEntNum);
+	else if ( !isMultiplayer || !spawnSpots.Num() ) {
 		spot.ent = FindEntityUsingDef( NULL, "info_player_start" );
 		if ( !spot.ent ) {
 			Error( "No info_player_start on map.\n" );

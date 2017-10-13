@@ -40,6 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "GameEdit.h"
 
 class idAI;
+class pyBotClass;
 
 /*
 ===============================================================================
@@ -206,6 +207,55 @@ typedef struct {
 	idVec3	pos;
 } aasLocation_t;
 
+
+// gaius
+
+const int SELECT_RUN = 0;   // these numbers must remain powers of 2
+const int SELECT_FIRE = 1;
+const int SELECT_TURN = 2;
+const int SELECT_RELOAD = 4;
+
+// gaius
+
+class selectInfo
+{
+ public:
+  selectInfo (void);
+  ~selectInfo (void);
+  selectInfo (const selectInfo &from);
+
+  int get_run (void);
+  void set_ammo (int count);
+  void set_run (int count);
+  void set_angle (int final, int inc, int current);
+  void set_reload (void);
+  void dec_ammo (int amount);
+  void dec_run (int amount);
+  void inc_angle (idPlayer *p);
+  void finished_reload (void);
+  void select (unsigned int bitmask);
+  void poll (pyBotClass *pybot);
+
+ private:
+  bool ammo_active;   //  ammo count is still active
+  bool run_active;    //  run is still in progress
+  bool angle_active;  //  turn is still being achieved
+  bool reload_active; //  reload is underway
+
+  bool ammo_select;   //  python script is interested to know when the ammo count finishes
+  bool run_select;    //  python script wants to know when the run movement has completed
+  bool angle_select;  //  python script wants to know when the turn is complete.
+  bool reload_select; //  python script wants to know when the reload has finished.
+
+  unsigned int ammo;   // python bot can count/limit the amount of ammo fired.
+  unsigned int run;    // python bot can count/limit the steps taken.
+  unsigned int angle_final;  // the final angle desired
+  unsigned int angle_inc;    // the angle increment used every time slice
+  unsigned int angle_cur;    // the current angle of the bot.
+  bool reload_finished;  // has the reload finished yet?
+};
+
+
 class idPlayer : public idActor {
 public:
 	enum {
@@ -218,6 +268,7 @@ public:
 	};
 
 	usercmd_t				usercmd;
+	selectInfo                              pulseCount;
 
 	class idPlayerView		playerView;			// handles damage kicks and effects
 
@@ -523,6 +574,24 @@ public:
 
 	bool					SelfSmooth( void );
 	void					SetSelfSmooth( bool b );
+	void RegisterPython (bool pythonBot);
+	idVec3 GetPos (void);  // gaius
+	void dumpControls (usercmd_t usercmd, int buttonMask);
+	bool IsDead (void);    // gaius
+	bool pythonBot;        // gaius
+	pyBotClass *pybot;     // gaius
+	// bool setRun (bool value);
+	int setRight (int vel, int dist);  // gaius
+	int setForward (int vel, int dist);  // gaius
+	int setVec (int velforward, int velright, int dist);  // gaius
+	bool Aim (idEntity *enemy);  // gaius
+	bool isVisible (idEntity *enemy);  // gaius
+	int Fire (bool b);   // gaius
+	int Ammo (void);  // gaius
+        int Turn (int angle, int angle_vel);   // gaius
+	void doTurn (int angle);	// gaius
+	const char *PenMap (void);  // gaius
+	void select (int bitmask);  // gaius
 
 private:
 	jointHandle_t			hipJoint;

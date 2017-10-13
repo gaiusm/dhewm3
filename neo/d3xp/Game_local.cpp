@@ -923,6 +923,31 @@ void idGameLocal::SetServerInfo( const idDict &_serverInfo ) {
 
 
 /*
+ *  FindNoOfPythonClients - returns the number of Python clients required.
+ *  (gaius)
+ */
+
+int idGameLocal::FindNoOfPythonClients (void)
+{
+  int n = 0;
+
+#if 1
+  for (int i = 0; i < mapFile->GetNumEntities(); i++)
+    {
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+
+      const char *classname;
+      if (mapEnt->epairs.GetString ("classname", "", &classname)
+	  && ((strcmp (classname, "python_doommarine") == 0)
+	      || (strcmp (classname, "python_doommarine_mp") == 0)))
+	  n++;
+    }
+#endif
+  return n;
+}
+
+
+/*
 ===================
 idGameLocal::LoadMap
 
@@ -2006,7 +2031,17 @@ void idGameLocal::InitScriptForMap( void ) {
 idGameLocal::SpawnPlayer
 ============
 */
-void idGameLocal::SpawnPlayer( int clientNum ) {
+void idGameLocal::SpawnPlayer( int clientNum )
+{
+  SpawnPlayer (clientNum, 0, false);
+}
+
+/*
+===========
+idGameLocal::SpawnPlayer
+============
+*/
+void idGameLocal::SpawnPlayer( int clientNum, int pythonEntNum, bool python ) {
 	idEntity	*ent;
 	idDict		args;
 
@@ -2025,6 +2060,12 @@ void idGameLocal::SpawnPlayer( int clientNum ) {
 #else
 	args.Set( "classname", isMultiplayer ? "player_doommarine_mp" : "player_doommarine" );
 #endif
+	args.SetBool ("python", python);  // gaius
+	if (python)
+	  args.SetInt ("python_entnum", pythonEntNum);
+	else
+	  args.SetInt ("python_entnum", 0);
+
 	if ( !SpawnEntityDef( args, &ent ) || !entities[ clientNum ] ) {
 		Error( "Failed to spawn player as '%s'", args.GetString( "classname" ) );
 	}
@@ -4534,12 +4575,27 @@ upon map restart, initial spawns are used (randomized ordered list of spawns fla
   if there are more players than initial spots, overflow to regular spawning
 ============
 */
-idEntity *idGameLocal::SelectInitialSpawnPoint( idPlayer *player ) {
+idEntity *idGameLocal::SelectInitialSpawnPoint( idPlayer *player, bool pythonBot, int pythonEntNum ) {
 	int				i, j, which;
 	spawnSpot_t		spot;
 	idVec3			pos;
 	float			dist;
 	bool			alone;
+
+	if (pythonBot)
+	  {
+	    spot.ent = FindEntityUsingDef( NULL, "python_doommarine" );
+	    if (spot.ent == NULL)
+	      spot.ent = FindEntityUsingDef( NULL, "python_doommarine_mp" );
+	    for (i = 0; i < pythonEntNum; i++)
+	      {
+		idEntity *e = FindEntityUsingDef( spot.ent, "python_doommarine" );
+		if (e == NULL)
+		  spot.ent = FindEntityUsingDef( spot.ent, "python_doommarine_mp" );
+	      }
+	    return spot.ent;
+	  }
+	else
 
 #ifdef CTF
 	if ( !isMultiplayer || !spawnSpots.Num() || ( mpGame.IsGametypeFlagBased() && ( !teamSpawnSpots[0].Num() || !teamSpawnSpots[1].Num() ) ) ) { /* CTF */

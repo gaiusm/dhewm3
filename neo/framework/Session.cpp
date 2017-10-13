@@ -1519,6 +1519,11 @@ create a game at all.
 Exits with mapSpawned = true
 ===============
 */
+
+#define PYBOT
+
+static void mystop (void) {}
+
 void idSessionLocal::ExecuteMapChange( bool noFadeWipe ) {
 	int		i;
 	bool	reloadingSameMap;
@@ -1619,6 +1624,8 @@ void idSessionLocal::ExecuteMapChange( bool noFadeWipe ) {
 	common->Printf( "----- Map Initialization -----\n" );
 	common->Printf( "Map: %s\n", mapString.c_str() );
 
+	common->Printf( "ok sanity..\n" );
+
 	// let the renderSystem load all the geometry
 	if ( !rw->InitFromMap( fullMapName ) ) {
 		common->Error( "couldn't load %s", fullMapName.c_str() );
@@ -1651,11 +1658,34 @@ void idSessionLocal::ExecuteMapChange( bool noFadeWipe ) {
 		game->InitFromNewMap( fullMapName + ".map", rw, sw, idAsyncNetwork::server.IsActive(), idAsyncNetwork::client.IsActive(), Sys_Milliseconds() );
 	}
 
+#if defined (PYBOT)
+	mystop ();
+	common->Printf( "about to call GetNumPyClients\n" );
+	numPyClients = game->GetNumPyClients ();
+	common->Printf( "  GetNumPyClients: %d\n", numPyClients );
+
+	for (int j = 0; j < numPyClients; j++)
+	  {
+	    i = numClients + j;
+	    game->SetUserInfo (i, mapSpawnData.userInfo[i], false, false);
+	    game->SetPersistentPlayerInfo (i, mapSpawnData.persistentPlayerInfo[i]);
+	  }
+#endif
+
 	if ( !idAsyncNetwork::IsActive() && !loadingSaveGame ) {
-		// spawn players
-		for ( i = 0; i < numClients; i++ ) {
-			game->SpawnPlayer( i );
-		}
+	  // spawn players
+	  for (i = 0; i < numClients; i++) {
+	    game->SpawnPlayer (i, 0, false);
+	  }
+
+#if defined (PYBOT)
+	  // spawn python players
+	  for (int j = 0; j < numPyClients; j++)
+	    {
+	      i = numClients + j;
+	      game->SpawnPlayer (i, j, true);
+	    }
+#endif
 	}
 
 	// actually purge/load the media

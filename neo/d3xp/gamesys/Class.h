@@ -265,6 +265,7 @@ private:
 	static int					typeNumBits;
 	static int					memused;
 	static int					numobjects;
+
 };
 
 /***********************************************************************

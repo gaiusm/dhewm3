@@ -46,6 +46,7 @@ extern idCVar	g_gravity;
 extern idCVar	g_skipFX;
 extern idCVar	g_skipParticles;
 extern idCVar	g_bloodEffects;
+extern idCVar	g_gore;
 extern idCVar	g_projectileLights;
 extern idCVar	g_doubleVision;
 extern idCVar	g_muzzleFlash;

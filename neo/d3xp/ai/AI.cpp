@@ -289,6 +289,7 @@ idAI::idAI
 =====================
 */
 idAI::idAI() {
+        pythonBot               = false;
 	aas					= NULL;
 	travelFlags			= TFL_WALK|TFL_AIR;
 

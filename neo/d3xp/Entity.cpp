@@ -5472,13 +5472,23 @@ void idAnimatedEntity::UpdateDamageEffects( void ) {
 		idVec3 origin, start;
 		idMat3 axis;
 
-		animator.GetJointTransform( de->jointNum, gameLocal.time, origin, axis );
-		axis *= renderEntity.axis;
-		origin = renderEntity.origin + origin * renderEntity.axis;
-		start = origin + de->localOrigin * axis;
-		if ( !gameLocal.smokeParticles->EmitSmoke( de->type, de->time, gameLocal.random.CRandomFloat(), start, axis, timeGroup /*_D3XP*/ ) ) {
-			de->time = 0;
-		}
+		/* start of gaius change.  */
+		int mult = 1;
+		int i;
+			  
+		if (g_gore.GetBool ())
+		  mult = 40;
+
+		for (i=0; i<mult; i++)
+		  {
+		    animator.GetJointTransform( de->jointNum, gameLocal.time, origin, axis );
+		    axis *= renderEntity.axis;
+		    origin = renderEntity.origin + origin * renderEntity.axis;
+		    start = origin + de->localOrigin * axis;
+		    if ( !gameLocal.smokeParticles->EmitSmoke( de->type, de->time, gameLocal.random.CRandomFloat(), start, axis, timeGroup /*_D3XP*/ ) ) {
+		      de->time = 0;
+		    }
+		  }
 	}
 }
 

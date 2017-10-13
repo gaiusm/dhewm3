@@ -293,6 +293,7 @@ public:
 
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
+	int                                             numPyClients;  // how many Python clients are in use?
 
 	// ---------------------- Public idGame Interface -------------------
 
@@ -314,6 +315,7 @@ public:
 	virtual void			MapShutdown( void );
 	virtual void			CacheDictionaryMedia( const idDict *dict );
 	virtual void			SpawnPlayer( int clientNum );
+	virtual void			SpawnPlayer( int clientNum, int pythonEntNum, bool pythonBot );
 	virtual gameReturn_t	RunFrame( const usercmd_t *clientCmds );
 	virtual bool			Draw( int clientNum );
 	virtual escReply_t		HandleESC( idUserInterface **gui );
@@ -338,8 +340,12 @@ public:
 
 	virtual bool			DownloadRequest( const char *IP, const char *guid, const char *paks, char urls[ MAX_STRING_CHARS ] );
 
+	virtual int                     GetNumPyClients (void);
+
 	// ---------------------- Public idGameLocal Interface -------------------
 
+	int                                     FindNoOfPythonClients (void);  // gaius
+        const char *                            FindPenMap (void);  // gaius
 	void					Printf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					DPrintf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					Warning( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
@@ -348,7 +354,6 @@ public:
 
 							// Initializes all map variables common to both save games and spawned games
 	void					LoadMap( const char *mapName, int randseed );
-
 	void					LocalMapRestart( void );
 	void					MapRestart( void );
 	static void				MapRestart_f( const idCmdArgs &args );
@@ -372,6 +377,7 @@ public:
 	idEntity *				SpawnEntityType( const idTypeInfo &classdef, const idDict *args = NULL, bool bIsClientReadSnapshot = false );
 	bool					SpawnEntityDef( const idDict &args, idEntity **ent = NULL, bool setDefaults = true );
 	int						GetSpawnId( const idEntity *ent ) const;
+	void mycheck (bool value);
 
 	const idDeclEntityDef *	FindEntityDef( const char *name, bool makeDefault = true ) const;
 	const idDict *			FindEntityDefDict( const char *name, bool makeDefault = true ) const;
@@ -431,8 +437,13 @@ public:
 	idPlayer *				GetLocalPlayer() const;
 
 	void					SpreadLocations();
+	void                                    DumpEntities (void) const; // gaius
+	void                                    DumpEntityOrigin (void); // gaius
 	idLocationEntity *		LocationForPoint( const idVec3 &point );	// May return NULL
-	idEntity *				SelectInitialSpawnPoint( idPlayer *player );
+	bool                                    samePosition (idVec3 a, idVec3 b);
+	idVec3 GetEntityOrigin (int entNum);
+	idEntity *                              SelectPythonSpawnPoint ( idPlayer *player, bool pythonBot, int pythonEntNum );
+	idEntity *				SelectInitialSpawnPoint( idPlayer *player, bool pythonBot, int pythonEntNum );
 
 	void					SetPortalState( qhandle_t portal, int blockingBits );
 	void					SaveEntityNetworkEvent( const idEntity *ent, int event, const idBitMsg *msg );

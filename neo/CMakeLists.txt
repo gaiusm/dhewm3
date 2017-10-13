@@ -154,8 +154,8 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_compile_options(-march=pentium3)
 	endif()
 
-	set(CMAKE_C_FLAGS_DEBUG "-g -D_DEBUG -O1")
-	set(CMAKE_C_FLAGS_DEBUGALL "-g -ggdb -D_DEBUG")
+	set(CMAKE_C_FLAGS_DEBUG "-g -D_DEBUG -O0")
+	set(CMAKE_C_FLAGS_DEBUGALL "-g -ggdb -O0 -D_DEBUG")
 	set(CMAKE_C_FLAGS_PROFILE "-g -ggdb -D_DEBUG -O1 -fno-omit-frame-pointer")
 	set(CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer")
 	set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g -O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer")
@@ -564,6 +564,7 @@ set(src_game
 	game/ai/AI_events.cpp
 	game/ai/AI_pathing.cpp
 	game/ai/AI_Vagary.cpp
+	game/ai/pybot.cpp
 	game/gamesys/DebugGraph.cpp
 	game/gamesys/Class.cpp
 	game/gamesys/Event.cpp

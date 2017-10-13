@@ -255,6 +255,21 @@ void idClass::CallSpawn( void ) {
 	CallSpawnFunc( type );
 }
 
+
+/*
+================
+idClass::SetPython
+================
+*/
+void idClass::SetPython( bool python, const char *name ) {
+	idTypeInfo *type;
+
+	type = GetType ();
+#if 0
+	type->SetPython (python, name);
+#endif
+}
+
 /*
 ================
 idClass::CallSpawnFunc

@@ -319,6 +319,7 @@ public:
 
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
+	int                                             numPyClients;  // how many Python clients are in use?
 
 #ifdef _D3XP
 	idEntityPtr<idEntity>	portalSkyEnt;
@@ -371,6 +372,7 @@ public:
 	virtual void			MapShutdown( void );
 	virtual void			CacheDictionaryMedia( const idDict *dict );
 	virtual void			SpawnPlayer( int clientNum );
+	virtual void			SpawnPlayer( int clientNum, int pythonEntNum, bool python );
 	virtual gameReturn_t	RunFrame( const usercmd_t *clientCmds );
 	virtual bool			Draw( int clientNum );
 	virtual escReply_t		HandleESC( idUserInterface **gui );
@@ -396,9 +398,11 @@ public:
 	virtual bool			DownloadRequest( const char *IP, const char *guid, const char *paks, char urls[ MAX_STRING_CHARS ] );
 
 	virtual void				GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] );
+	virtual int                     GetNumPyClients (void);
 
 	// ---------------------- Public idGameLocal Interface -------------------
 
+	int                                     FindNoOfPythonClients (void);
 	void					Printf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					DPrintf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					Warning( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
@@ -407,7 +411,6 @@ public:
 
 							// Initializes all map variables common to both save games and spawned games
 	void					LoadMap( const char *mapName, int randseed );
-
 	void					LocalMapRestart( void );
 	void					MapRestart( void );
 	static void				MapRestart_f( const idCmdArgs &args );
@@ -494,7 +497,7 @@ public:
 
 	void					SpreadLocations();
 	idLocationEntity *		LocationForPoint( const idVec3 &point );	// May return NULL
-	idEntity *				SelectInitialSpawnPoint( idPlayer *player );
+	idEntity *				SelectInitialSpawnPoint( idPlayer *player, bool pythonBot, int pythonEntNum );
 
 	void					SetPortalState( qhandle_t portal, int blockingBits );
 	void					SaveEntityNetworkEvent( const idEntity *ent, int event, const idBitMsg *msg );

@@ -451,6 +451,9 @@ void idEntity::FixupLocalizedStrings() {
 	}
 }
 
+static void mystop (void) {}
+
+
 /*
 ================
 idEntity::Spawn
@@ -789,6 +792,8 @@ const char * idEntity::GetEntityDefName( void ) const {
 	if ( entityDefNumber < 0 ) {
 		return "*unknown*";
 	}
+	const char *n = declManager->DeclByIndex( DECL_ENTITYDEF, entityDefNumber, false )->GetName();
+	gameLocal.Printf( "entity name: %s\n", n);
 	return declManager->DeclByIndex( DECL_ENTITYDEF, entityDefNumber, false )->GetName();
 }
 
@@ -5154,6 +5159,7 @@ idAnimatedEntity::GetDefaultSurfaceType
 int	idAnimatedEntity::GetDefaultSurfaceType( void ) const {
 	return SURFTYPE_METAL;
 }
+
 
 /*
 ==============

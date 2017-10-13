@@ -369,7 +369,7 @@ used to parse an image program from a text stream.
 ===================
 */
 static bool R_ParseImageProgram_r( idLexer &src, byte **pic, int *width, int *height,
-								  ID_TIME_T *timestamps, textureDepth_t *depth ) {
+				   ID_TIME_T *timestamps, textureDepth_t *depth ) {
 	idToken		token;
 	float		scale;
 	ID_TIME_T		timestamp;

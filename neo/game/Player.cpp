@@ -41,6 +41,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 #include "Misc.h"
 
+const bool debug_turn = false;
+const bool debug_select = false;
+
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
 const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range [-1, 60]
 
@@ -127,6 +130,7 @@ idVec3 idPlayer::colorBarTable[ 5 ] = {
 	idVec3( 0.20f, 0.50f, 0.80f ),
 	idVec3( 1.00f, 0.80f, 0.10f )
 };
+
 
 /*
 ==============
@@ -947,6 +951,8 @@ void idInventory::UpdateArmor( void ) {
 	}
 }
 
+static void mystop (void) {}
+
 /*
 ==============
 idPlayer::idPlayer
@@ -1133,7 +1139,102 @@ idPlayer::idPlayer() {
 	isChatting				= false;
 
 	selfSmooth				= false;
+	pybot = NULL;
 }
+
+
+void idPlayer::RegisterPython (bool pythonBot)
+{
+  // gaius
+  if (pythonBot)
+    {
+      const char *pythonName = spawnArgs.GetString ("python_name");
+      pythonBot = spawnArgs.GetBool ("pythonBot");
+      gameLocal.Printf ("calling registerName (%s)\n", pythonName);
+      pybot = registerName (pythonName, this);
+      gameLocal.Printf ("python script has connected (%s)\n", pythonName);
+    }
+  else
+    populateDictionary ("human", this);
+}
+
+
+// gaius
+
+idVec3 idPlayer::GetPos (void)
+{
+  if (AI_DEAD)
+    return idVec3 {0.0, 0.0, 0.0};
+  return physicsObj.GetOrigin();
+}
+
+
+// gaius
+
+bool idPlayer::IsDead (void)
+{
+  return AI_DEAD;
+}
+
+// gaius
+
+int idPlayer::setRight (int vel, int dist)
+{
+  int old = (int) usercmd.rightmove;
+
+  usercmd.upmove = 0;
+  usercmd.forwardmove = 0;
+  usercmd.rightmove = (signed char) vel;
+  buttonMask = 0;
+  buttonMask |= BUTTON_RUN;
+  pulseCount.set_run (dist);
+  usercmd.buttons |= BUTTON_RUN;
+  gameLocal.usercmds[entityNumber] = usercmd;
+  return old;
+}
+
+
+int idPlayer::setForward (int vel, int dist)
+{
+  int old = (int) usercmd.forwardmove;
+
+  usercmd.upmove = 0;
+  usercmd.forwardmove = (signed char) vel;
+  usercmd.rightmove = 0;
+  buttonMask = 0;
+  buttonMask |= BUTTON_RUN;
+  pulseCount.set_run (dist);
+  usercmd.buttons |= BUTTON_RUN;
+  gameLocal.usercmds[entityNumber] = usercmd;
+  return old;
+}
+
+
+// gaius
+
+int idPlayer::setVec (int velforward, int velright, int dist)
+{
+  int old = (int) usercmd.rightmove;
+
+  usercmd.upmove = 0;
+  usercmd.forwardmove = (signed char) velforward;
+  usercmd.rightmove = (signed char) velright;
+  buttonMask = 0;
+  buttonMask |= BUTTON_RUN;
+  pulseCount.set_run (dist);
+  usercmd.buttons |= BUTTON_RUN;
+  gameLocal.usercmds[entityNumber] = usercmd;
+  return old;
+}
+
+
+// gaius
+
+void idPlayer::select (int bitmask)
+{
+  pulseCount.select (bitmask);
+}
+
 
 /*
 ==============
@@ -1411,6 +1512,7 @@ void idPlayer::Init( void ) {
 	cvarSystem->SetCVarBool( "ui_chat", false );
 }
 
+
 /*
 ==============
 idPlayer::Spawn
@@ -1422,8 +1524,10 @@ void idPlayer::Spawn( void ) {
 	idStr		temp;
 	idBounds	bounds;
 
+	pythonBot = spawnArgs.GetBool( "pythonBot", "0" );
+	assert (pythonBot == spawnArgs.GetBool( "pythonBot" ));
 	if ( entityNumber >= MAX_CLIENTS ) {
-		gameLocal.Error( "entityNum > MAX_CLIENTS for player.  Player may only be spawned with a client." );
+	  gameLocal.Error( "entityNum > MAX_CLIENTS for player.  Player may only be spawned with a client." );
 	}
 
 	// allow thinking during cinematics
@@ -1446,8 +1550,10 @@ void idPlayer::Spawn( void ) {
 
 	skin = renderEntity.customSkin;
 
-	// only the local player needs guis
-	if ( !gameLocal.isMultiplayer || entityNumber == gameLocal.localClientNum ) {
+	if (! pythonBot)
+	  {
+	    // only the local player needs guis
+	    if ( !gameLocal.isMultiplayer || entityNumber == gameLocal.localClientNum ) {
 
 		// load HUD
 		if ( gameLocal.isMultiplayer ) {
@@ -1469,7 +1575,8 @@ void idPlayer::Spawn( void ) {
 
 		objectiveSystem = uiManager->FindGui( "guis/pda.gui", true, false, true );
 		objectiveSystemOpen = false;
-	}
+	    }
+	  }
 
 	SetLastHitTime( 0 );
 
@@ -1481,23 +1588,29 @@ void idPlayer::Spawn( void ) {
 
 	animator.RemoveOriginOffset( true );
 
-	// initialize user info related settings
-	// on server, we wait for the userinfo broadcast, as this controls when the player is initially spawned in game
-	if ( gameLocal.isClient || entityNumber == gameLocal.localClientNum ) {
-		UserInfoChanged( false );
-	}
+	if (! pythonBot)
+	  {
+	    // initialize user info related settings
+	    // on server, we wait for the userinfo broadcast, as this controls when the player is initially spawned in game
+	    if ( gameLocal.isClient || entityNumber == gameLocal.localClientNum ) {
+	      UserInfoChanged( false );
+	    }
+	  }
 
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
 
-	// init the damage effects
-	playerView.SetPlayerEntity( this );
+	if (! pythonBot)
+	  {
+	    // init the damage effects
+	    playerView.SetPlayerEntity( this );
 
-	// supress model in non-player views, but allow it in mirrors and remote views
-	renderEntity.suppressSurfaceInViewID = entityNumber+1;
+	    // supress model in non-player views, but allow it in mirrors and remote views
+	    renderEntity.suppressSurfaceInViewID = entityNumber+1;
 
-	// don't project shadow on self or weapon
-	renderEntity.noSelfShadow = true;
+	    // don't project shadow on self or weapon
+	    renderEntity.noSelfShadow = true;
+	  }
 
 	idAFAttachment *headEnt = head.GetEntity();
 	if ( headEnt ) {
@@ -1592,6 +1705,14 @@ void idPlayer::Spawn( void ) {
 			}
 		}
 	}
+	if (pythonBot)
+	  {
+	    idDict *userInfo = GetUserInfo ();
+
+	    assert (userInfo != NULL);
+	    userInfo->SetBool ("ui_chat", false);
+	    userInfo->SetBool ("ui_showGun", false);
+	  }
 }
 
 /*
@@ -2139,8 +2260,10 @@ use normal spawn selection.
 void idPlayer::SelectInitialSpawnPoint( idVec3 &origin, idAngles &angles ) {
 	idEntity *spot;
 	idStr skin;
+	bool pythonBot = spawnArgs.GetBool ("pythonBot");
+	int pythonEntNum = spawnArgs.GetInt ("python_entnum");
 
-	spot = gameLocal.SelectInitialSpawnPoint( this );
+	spot = gameLocal.SelectInitialSpawnPoint( this, pythonBot, pythonEntNum );
 
 	// set the player skin from the spawn location
 	if ( spot->spawnArgs.GetString( "skin", NULL, skin ) ) {
@@ -6173,6 +6296,17 @@ void idPlayer::StartFxOnBone( const char *fx, const char *bone ) {
 	idEntityFx::StartFx( fx, &offset, &axis, this, true );
 }
 
+
+void idPlayer::dumpControls (usercmd_t usercmd, int buttonMask)
+{
+  gameLocal.Printf ("usercmd.buttons = 0x%x   forward = %d,   right = %d,   up = %d,   buttonMask = 0x%x\n",
+		    usercmd.buttons, usercmd.forwardmove,
+		    usercmd.rightmove, usercmd.upmove, buttonMask);
+}
+
+static usercmd_t *uptr = NULL;
+
+
 /*
 ==============
 idPlayer::Think
@@ -6191,8 +6325,45 @@ void idPlayer::Think( void ) {
 	// grab out usercmd
 	usercmd_t oldCmd = usercmd;
 	usercmd = gameLocal.usercmds[ entityNumber ];
+
+	if ((uptr == NULL) && (pythonBot))
+	  {
+	    uptr = &gameLocal.usercmds[entityNumber];
+	    mystop ();
+	  }
 	buttonMask &= usercmd.buttons;
 	usercmd.buttons &= ~buttonMask;
+
+#if 0
+	if (pythonBot)
+	  gameLocal.Printf ("python ");
+	else
+	  gameLocal.Printf ("human  ");
+	dumpControls (usercmd, buttonMask);
+#endif
+
+	if (pythonBot)
+	  {
+	    if (pulseCount.get_run () > 0)
+	      {
+		buttonMask |= BUTTON_RUN;
+		pulseCount.dec_run (1);
+		// have we finished running?
+		if (pulseCount.get_run () == 0)
+		  {
+		    usercmd.buttons = 0;
+		    buttonMask &= (~ BUTTON_RUN);
+		    usercmd.rightmove = 0;
+		    usercmd.forwardmove = 0;
+		    gameLocal.usercmds[entityNumber].rightmove = 0;
+		    gameLocal.usercmds[entityNumber].forwardmove = 0;
+		    gameLocal.usercmds[entityNumber].buttons = 0;
+		  }
+	      }
+	    pulseCount.inc_angle (this);
+	    pulseCount.poll (pybot);
+	  }
+
 
 	if ( gameLocal.inCinematic && gameLocal.skipCinematic ) {
 		return;
@@ -6249,19 +6420,26 @@ void idPlayer::Think( void ) {
 		}
 	}
 
-	// if we have an active gui, we will unrotate the view angles as
-	// we turn the mouse movements into gui events
-	idUserInterface *gui = ActiveGui();
-	if ( gui && gui != focusUI ) {
-		RouteGuiMouse( gui );
-	}
+	if (! pythonBot)
+	  {
+	    // if we have an active gui, we will unrotate the view angles as
+	    // we turn the mouse movements into gui events
+	    idUserInterface *gui = ActiveGui();
+	    if ( gui && gui != focusUI ) {
+	      RouteGuiMouse( gui );
+	    }
+	  }
 
 	// set the push velocity on the weapon before running the physics
-	if ( weapon.GetEntity() ) {
-		weapon.GetEntity()->SetPushVelocity( physicsObj.GetPushedLinearVelocity() );
+	if (weapon.GetEntity()) {
+	  weapon.GetEntity()->SetPushVelocity( physicsObj.GetPushedLinearVelocity() );
 	}
 
+	// gaius - python blocked if we return here
+
 	EvaluateControls();
+	if (pythonBot && pybot)
+	  pybot->poll (false);
 
 	if ( !af.IsActive() ) {
 		AdjustBodyAngles();
@@ -6376,8 +6554,8 @@ void idPlayer::Think( void ) {
 		UpdateDamageEffects();
 
 		LinkCombat();
-
-		playerView.CalculateShake();
+		if (! pythonBot)
+		  playerView.CalculateShake();
 	}
 
 	if ( !( thinkFlags & TH_THINK ) ) {
@@ -6431,6 +6609,127 @@ void idPlayer::LookAtKiller( idEntity *inflictor, idEntity *attacker ) {
 	idAngles ang( 0, dir.ToYaw(), 0 );
 	SetViewAngles( ang );
 }
+
+
+/*
+ *  idPlayer::isVisible - can we see enemy via line of sight?
+ */
+
+bool idPlayer::isVisible (idEntity *enemy)
+{
+  return CanSee (enemy, true);
+}
+
+
+/*
+==============
+idPlayer::doTurn  make the player face angle degrees  (gaius)
+==============
+ */
+
+void idPlayer::doTurn (int angle)
+{
+  if (debug_turn)
+    gameLocal.Printf ("doTurn %d\n", angle);
+  idAngles ang (0, (float) angle, 0);
+  SetViewAngles (ang);
+  // and now orient the model towards the direction we're looking
+  SetAngles (ang);
+}
+
+
+/*
+==============
+idPlayer::Turn  the player to face angle degrees  (gaius)
+==============
+ */
+
+int idPlayer::Turn (int angle, int angle_vel)
+{
+  if (debug_turn)
+    gameLocal.Printf ("angles = %f, %f, %f\n", viewAngles.pitch, viewAngles.yaw, viewAngles.roll);
+  int yaw = (((int) viewAngles.yaw) + 360) % 360;
+  pulseCount.set_angle (angle, angle_vel, yaw);
+  return yaw;
+}
+
+
+/*
+==============
+idPlayer::PenMap  return the penmap name.  // gaius
+==============
+ */
+
+const char *idPlayer::PenMap (void)
+{
+  return gameLocal.FindPenMap ();
+}
+
+
+/*
+=============
+idPlayer::Aim  (gaius)
+=============
+ */
+
+bool idPlayer::Aim (idEntity *enemy)
+{
+  if (isVisible (enemy))
+    {
+      idVec3 dir = enemy->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
+
+      idAngles ang (0, dir.ToYaw(), 0);
+      SetViewAngles (ang);
+      // and now orient the model towards the direction we're looking
+      SetAngles (ang);
+      return true;
+    }
+  return false;
+}
+
+
+/*
+=============
+idPlayer::Fire  (gaius)
+=============
+ */
+
+int idPlayer::Fire (bool b)
+{
+  if (b)
+    {
+      buttonMask = 0;
+      usercmd.buttons = 0;
+      SelectWeapon (1, true);
+      buttonMask |= BUTTON_ATTACK;
+      usercmd.buttons |= BUTTON_ATTACK;
+      // FireWeapon ();
+    }
+  else
+    {
+      buttonMask &= ~(BUTTON_ATTACK);
+      usercmd.buttons &= ~(BUTTON_ATTACK);
+    }
+  // StopFiring ();
+  if (currentWeapon >= 0 && currentWeapon < MAX_WEAPONS)
+    return inventory.ammo[currentWeapon];
+  return 0;
+}
+
+
+/*
+==============
+idPlayer::Ammo  (gaius)
+==============
+ */
+
+int idPlayer::Ammo (void)
+{
+  if (currentWeapon >= 0 && currentWeapon < MAX_WEAPONS)
+    return inventory.ammo[currentWeapon];
+  return 0;
+}
+
 
 /*
 ==============
@@ -8519,4 +8818,208 @@ idPlayer::NeedsIcon
 bool idPlayer::NeedsIcon( void ) {
 	// local clients don't render their own icons... they're only info for other clients
 	return entityNumber != gameLocal.localClientNum && ( isLagged || isChatting );
+}
+
+
+// gaius
+
+int min (int a, int b)
+{
+  if (a < b)
+    return a;
+  return b;
+}
+
+
+int max (int a, int b)
+{
+  if (a > b)
+    return a;
+  return b;
+}
+
+
+/*
+ *  selectInfo - constructor, initialise all fields to 0 or false.
+ */
+
+selectInfo::selectInfo ()
+  : ammo_active (false), run_active (false), angle_active (false), reload_active (false),
+    ammo_select (false), run_select (false), angle_select (false), reload_select (false),
+    ammo (0), run (0), angle_final (0), angle_inc (0)
+{
+}
+
+
+/*
+ *  selectInfo - deconstructor, do nothing.
+ */
+
+selectInfo::~selectInfo ()
+{
+}
+
+
+/*
+ *  selectInfo - the copy operator.
+ */
+
+selectInfo::selectInfo (const selectInfo &from)
+{
+  *this = from;
+}
+
+
+void selectInfo::set_ammo (int count)
+{
+  ammo = count;
+  ammo_active = true;
+}
+
+
+int selectInfo::get_run (void)
+{
+  return run;
+}
+
+
+void selectInfo::set_run (int count)
+{
+  run = count;
+  run_active = true;
+}
+
+
+void selectInfo::set_angle (int final, int inc, int current)
+{
+  angle_final = (final % 360);
+  angle_inc = inc;
+  angle_cur = current;
+  angle_active = true;
+
+  if (debug_turn)
+    gameLocal.Printf ("set_angle (angle_final = %d, angle_inc = %d, angle_cur = %d)\n", angle_final, angle_inc, angle_cur);
+}
+
+
+void selectInfo::set_reload (void)
+{
+  reload_active = true;
+}
+
+
+void selectInfo::dec_ammo (int amount)
+{
+  if (ammo_active)
+    {
+      ammo = max (ammo-amount, 0);
+      ammo_active = (ammo != 0);  // turn this off when we have fired requested amount
+    }
+}
+
+
+void selectInfo::dec_run (int amount)
+{
+  if (run_active)
+    {
+      run = max (run-amount, 0);
+      run_active = (run != 0);  // turn this off when we have run for long enough
+    }
+}
+
+
+void selectInfo::inc_angle (idPlayer *p)
+{
+  if ((p != NULL) && angle_active)
+    {
+      if (debug_turn)
+	gameLocal.Printf ("inc_angle (angle_cur = %d, angle_inc = %d, angle_final = %d)\n",
+			  angle_cur, angle_inc, angle_final);
+      if (angle_cur < angle_final)
+	{
+	  angle_cur += (angle_inc + 360);
+	  angle_cur %= 360;
+	  if (angle_cur >= angle_final)
+	    /* far enough.  */
+	    angle_cur = angle_final;
+	}
+      else if (angle_cur > angle_final)
+	{
+	  angle_cur += (angle_inc + 360);
+	  angle_cur %= 360;
+	  if (angle_cur <= angle_final)
+	    {
+	      /* far enough.  */
+	      angle_cur = angle_final;
+	    }
+	}
+
+      p->doTurn (angle_cur);
+      if (debug_turn)
+	gameLocal.Printf ("doTurn (angle_cur = %d)\n", angle_cur);
+      angle_active = (angle_cur != angle_final);  // turn this off when we reached final orientation
+    }
+}
+
+
+void selectInfo::finished_reload (void)
+{
+  reload_finished = true;
+  reload_active = false;
+}
+
+
+/*
+ *  select - turn on the various booleans depending upon the bits in bitmask.
+ */
+
+void selectInfo::select (unsigned int bitmask)
+{
+  run_select = ((bitmask & (1 << SELECT_RUN)) != 0);
+  ammo_select = ((bitmask & (1 << SELECT_FIRE)) != 0);
+  angle_select = ((bitmask & (1 << SELECT_TURN)) != 0);
+  reload_select = ((bitmask & (1 << SELECT_RELOAD)) != 0);
+  if (debug_select)
+    {
+      gameLocal.Printf ("selectInfo (%d)\n...[", bitmask);
+      if (run_select)
+	gameLocal.Printf ("run, ");
+      if (ammo_select)
+	gameLocal.Printf ("fire, ");
+      if (reload_select)
+	gameLocal.Printf ("reload, ");
+      if (angle_select)
+	gameLocal.Printf ("turn, ");
+      gameLocal.Printf ("]\n");
+    }
+}
+
+
+/*
+ *  poll - check to see if any of the selected activities have completed.
+ */
+
+void selectInfo::poll (pyBotClass *pybot)
+{
+  int mask = 0;
+
+  if (run_select)
+    // if we have finished running report back to the python client
+    if (run == 0)
+      mask |= (1 << SELECT_RUN);
+
+  if (ammo_select)
+    if (ammo == 0)
+      mask |= (1 << SELECT_FIRE);
+
+  if (angle_select)
+    if (angle_cur == angle_final)
+      mask |= (1 << SELECT_TURN);
+
+  if (reload_select)
+    if (reload_finished)
+      mask |= (1 << SELECT_RELOAD);
+
+  if (mask != 0 && (pybot != NULL))
+    pybot->selectComplete (mask);
 }

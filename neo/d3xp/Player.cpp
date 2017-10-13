@@ -2630,8 +2630,10 @@ use normal spawn selection.
 void idPlayer::SelectInitialSpawnPoint( idVec3 &origin, idAngles &angles ) {
 	idEntity *spot;
 	idStr skin;
+	bool pythonBot = spawnArgs.GetBool ("pythonBot");
+	int pythonEntNum = spawnArgs.GetInt ("python_entnum");
 
-	spot = gameLocal.SelectInitialSpawnPoint( this );
+	spot = gameLocal.SelectInitialSpawnPoint( this, pythonBot, pythonEntNum );
 
 	// set the player skin from the spawn location
 	if ( spot->spawnArgs.GetString( "skin", NULL, skin ) ) {

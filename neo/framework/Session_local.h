@@ -204,6 +204,7 @@ public:
 	bool				mapSpawned;				// cleared on Stop()
 
 	int					numClients;				// from serverInfo
+	int					numPyClients;				// from map
 
 	int					logIndex;
 	logCmd_t			loggedUsercmds[MAX_LOGGED_USERCMDS];

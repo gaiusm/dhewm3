@@ -602,6 +602,8 @@ CONSOLE LINE EDITING
 ==============================================================================
 */
 
+static void stop () {}
+
 /*
 ====================
 KeyDownEvent
@@ -611,6 +613,7 @@ Handles history and console scrollback
 */
 void idConsoleLocal::KeyDownEvent( int key ) {
 
+        stop ();
 	// Execute F key bindings
 	if ( key >= K_F1 && key <= K_F12 ) {
 		idKeyInput::ExecKeyBinding( key );

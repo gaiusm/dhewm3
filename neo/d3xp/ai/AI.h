@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Entity.h"
 #include "Actor.h"
 #include "Projectile.h"
+/* #include "../../pybot.h" */
 
 class idFuncEmitter;
 
@@ -298,6 +299,11 @@ public:
 #endif
 
 protected:
+	// gaius   // is this bot controlled by a Python script?
+	bool                                    pythonBot;
+#if 0
+	pyBotClass                             *pybot;
+#endif
 	// navigation
 	idAAS *					aas;
 	int						travelFlags;

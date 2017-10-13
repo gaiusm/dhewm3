@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Entity.h"
 #include "Actor.h"
 #include "Projectile.h"
+#include "pybot.h"
+
 
 /*
 ===============================================================================
@@ -276,8 +278,14 @@ public:
 	static bool				TestTrajectory( const idVec3 &start, const idVec3 &end, float zVel, float gravity, float time, float max_height, const idClipModel *clip, int clipmask, const idEntity *ignore, const idEntity *targetEntity, int drawtime );
 							// Finds the best collision free trajectory for a clip model.
 	static bool				PredictTrajectory( const idVec3 &firePos, const idVec3 &target, float projectileSpeed, const idVec3 &projGravity, const idClipModel *clip, int clipmask, float max_height, const idEntity *ignore, const idEntity *targetEntity, int drawtime, idVec3 &aimDir );
+	idVec3 GetPos (void);  // gaius
+	bool IsDead (void);    // gaius
+	bool					StepDirection( float dir );	// gaius moved this to public
 
 protected:
+	// gaius   // is this bot controlled by a Python script?
+	bool                                    pythonBot;
+	pyBotClass                             *pybot;
 	// navigation
 	idAAS *					aas;
 	int						travelFlags;
@@ -486,7 +494,6 @@ protected:
 	bool					MoveToCover( idEntity *entity, const idVec3 &pos );
 	bool					SlideToPosition( const idVec3 &pos, float time );
 	bool					WanderAround( void );
-	bool					StepDirection( float dir );
 	bool					NewWanderDir( const idVec3 &dest );
 
 	// effects

@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SmokeParticles.h"
 
 #include "ai/AI.h"
+#include "ai/pybot.h"
 
 static const char *moveCommandString[ NUM_MOVE_COMMANDS ] = {
 	"MOVE_NONE",
@@ -286,6 +287,8 @@ idAI::idAI
 =====================
 */
 idAI::idAI() {
+        pythonBot               = false;  // gaius
+	pybot                   = NULL;
 	aas					= NULL;
 	travelFlags			= TFL_WALK|TFL_AIR;
 
@@ -700,6 +703,7 @@ void idAI::Restore( idRestoreGame *savefile ) {
 	}
 }
 
+static void mystop2 (void) {}
 /*
 =====================
 idAI::Spawn
@@ -747,6 +751,17 @@ void idAI::Spawn( void ) {
 	} else {
 		talk_state = TALK_NEVER;
 	}
+
+	spawnArgs.GetBool( "python",				"0",		pythonBot);
+	gameLocal.Printf( "pythonBot is set to %d\n", pythonBot);
+	if (pythonBot)
+	  {
+	    gameLocal.Printf( "calling registerName (%s)\n", name.c_str());
+	    pybot = registerName (name.c_str(), this);
+	    gameLocal.Printf( "python script has connected (%s)\n", name.c_str());
+	  }
+	else
+	  populateDictionary (name.c_str(), this);
 
 	spawnArgs.GetBool( "animate_z",				"0",		disableGravity );
 	spawnArgs.GetBool( "af_push_moveables",		"0",		af_push_moveables );
@@ -1049,10 +1064,15 @@ idAI::Think
 =====================
 */
 void idAI::Think( void ) {
-	// if we are completely closed off from the player, don't do anything at all
-	if ( CheckDormant() ) {
-		return;
-	}
+        // gaius // we need to disable the AI if this bot is being controlled from Python.
+        if (! pythonBot)
+	  {
+	    // gaius // back to original code
+	    // if we are completely closed off from the player, don't do anything at all
+	    if ( CheckDormant() ) {
+	      return;
+	    }
+	  }
 
 	if ( thinkFlags & TH_THINK ) {
 		// clear out the enemy when he dies or is hidden
@@ -1193,15 +1213,24 @@ idAI::UpdateAIScript
 =====================
 */
 void idAI::UpdateAIScript( void ) {
-	UpdateScript();
+  // gaius
+  if (pythonBot)
+    {
+      pybot->poll (false);
+      UpdateScript ();
+      UpdateAnimState ();
+      return;
+    }
+  else
+    UpdateScript ();
 
-	// clear the hit enemy flag so we catch the next time we hit someone
-	AI_HIT_ENEMY = false;
+  // clear the hit enemy flag so we catch the next time we hit someone
+  AI_HIT_ENEMY = false;
 
-	if ( allowHiddenMovement || !IsHidden() ) {
-		// update the animstate if we're not hidden
-		UpdateAnimState();
-	}
+  if ( allowHiddenMovement || !IsHidden() ) {
+    // update the animstate if we're not hidden
+    UpdateAnimState();
+  }
 }
 
 /***********************************************************************
@@ -2190,6 +2219,25 @@ bool idAI::NewWanderDir( const idVec3 &dest ) {
 	StopMove( MOVE_STATUS_DEST_UNREACHABLE );
 	return false;
 }
+
+/*
+=====================
+idAI::GetPos  // gaius
+=====================
+*/
+idVec3 idAI::GetPos (void)
+{
+  if (AI_DEAD)
+    return idVec3 {0.0, 0.0, 0.0};
+  return physicsObj.GetOrigin();
+}
+
+
+bool idAI::IsDead (void)
+{
+  return AI_DEAD;
+}
+
 
 /*
 =====================

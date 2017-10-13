@@ -124,7 +124,13 @@ public:
 	virtual void				CacheDictionaryMedia( const idDict *dict ) = 0;
 
 	// Spawns the player entity to be used by the client.
+	virtual void				SpawnPlayer( int clientNum, int pythonEntNum, bool python ) = 0;
+
+	// Spawns the player entity to be used by the client.
 	virtual void				SpawnPlayer( int clientNum ) = 0;
+
+	// GetNumPyClients returns the number of Python players
+	virtual int                     GetNumPyClients (void) = 0;
 
 	// Runs a game frame, may return a session command for level changing, etc
 	virtual gameReturn_t		RunFrame( const usercmd_t *clientCmds ) = 0;

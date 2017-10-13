@@ -168,11 +168,11 @@ ResizeInteractionTable
 ===================
 */
 void idRenderWorldLocal::ResizeInteractionTable() {
-	// we overflowed the interaction table, so dump it
-	// we may want to resize this in the future if it turns out to be common
-	common->Printf( "idRenderWorldLocal::ResizeInteractionTable: overflowed interactionTableWidth, dumping\n" );
-	R_StaticFree( interactionTable );
-	interactionTable = NULL;
+  // we overflowed the interaction table, so dump it
+  // we may want to resize this in the future if it turns out to be common
+  common->Printf( "idRenderWorldLocal::ResizeInteractionTable: overflowed interactionTableWidth (%d), dumping\n", interactionTableWidth );
+  R_StaticFree( interactionTable );
+  interactionTable = NULL;
 }
 
 /*
@@ -1473,8 +1473,8 @@ void idRenderWorldLocal::GenerateAllInteractions() {
 
 	// build the interaction table
 	if ( r_useInteractionTable.GetBool() ) {
-		interactionTableWidth = entityDefs.Num() + 100;
-		interactionTableHeight = lightDefs.Num() + 100;
+	  interactionTableWidth = entityDefs.Num() + 15000;   // 100;  (gaius)
+	  interactionTableHeight = lightDefs.Num() + 15000;  // 100;  (gaius)
 		int	size =  interactionTableWidth * interactionTableHeight * sizeof( *interactionTable );
 		interactionTable = (idInteraction **)R_ClearedStaticAlloc( size );
 
