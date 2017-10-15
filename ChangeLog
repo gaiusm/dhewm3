@@ -1,0 +1,64 @@
+2017-10-15      Gaius Mulley <gaius@gnu.org>
+
+	* neo/game/ai/pybot.cpp:  assign pydeveloper to false.
+	* python-bot/array2d.py:  new file.
+	* python-bot/botaa.py:  new file.
+	* python-bot/botlib.py:  new file.
+	* python-bot/python_demon_hellknight_1.py:  new file.
+	* python-bot/python_doommarine_1.py:  new file.
+	* python-bot/python_doommarine_2.py:  new file.
+
+2017-10-13      Gaius Mulley <gaius@gnu.org>
+
+	* neo/game/ai/pybot.cpp:  New file.
+	* neo/game/ai/pybot.h:  New file.
+
+2017-10-13      Gaius Mulley <gaius@gnu.org>
+
+	* neo/CMakeLists.txt:  force debug options to -O0 -ggdb.
+	  Introduced game/ai/pybot.cpp to the list of cpp source files.
+	* neo/d3xp/AFEntity.cpp:  gore mode to allow gibs to hang around for longer.
+	  Spawn more gibs if gore mode enabled.
+	* neo/d3xp/Entity.cpp:  gore mode to allow smoke to hang around for longer.
+	* neo/d3xp/Game_local.cpp:  (idGameLocal::FindNoOfPythonClients)  New method.
+          (idGameLocal::SpawnPlayer) many changes around python bots.
+	  (idGameLocal::SelectInitialSpawnPoint) change to handle pybot spawning.
+	* neo/d3xp/Game_local.h:  many changes to introduce pybots.
+	* neo/d3xp/Player.cpp:  python bot changes.
+	* neo/d3xp/ai/AI.cpp:  python bot changes.
+	* neo/d3xp/ai/AI.h:  python bot changes.
+	* neo/d3xp/gamesys/Class.h:  python bot changes.
+	* neo/d3xp/gamesys/SysCvar.cpp:  declare g_gore boolean and default is on.
+	* neo/d3xp/gamesys/SysCvar.h:  python bot changes.
+	* neo/framework/CmdSystem.cpp:  added a prompt for the console.
+	* neo/framework/Console.cpp:  python bot changes.
+	* neo/framework/Game.h:  python bot changes.
+	* neo/framework/Session.cpp:  python bot changes.
+	* neo/framework/Session_local.h:  python bot changes.
+	* neo/framework/UsercmdGen.cpp:  change default to always run.
+	* neo/game/AFEntity.cpp:  gore mode to allow gibs to hang around for longer.
+	  Spawn more gibs if gore mode enabled.
+	* neo/game/Entity.cpp:  python bot changes.
+	* neo/game/Game_local.cpp:  (idGameLocal::FindNoOfPythonClients),
+          (idGameLocal::FindPenMap), (idGameLocal::GetNumPyClients)
+          New methods.  (idGameLocal::SpawnPlayer) rewritten.
+          (idGameLocal::SpawnEntityDef)  large changes to detect python bots.
+          (idGameLocal::GetEntityOrigin), (idGameLocal::SelectPythonSpawnPoint),
+          New methods.
+	* neo/game/Game_local.h:  New definitions for the new methods.
+	* neo/game/Player.cpp:  huge number of changes to connect Python remote
+	  procedure calls.
+	* neo/game/Player.h:  new declarations.
+	* neo/game/ai/AI.cpp:  huge number of changes to connect Python remote
+	  procedure calls.
+	* neo/game/ai/AI.h:  new declarations.
+	* neo/game/gamesys/Class.cpp:  python bot changes.
+	* neo/game/gamesys/Class.h:  python bot changes.
+	* neo/game/gamesys/SysCvar.cpp:  python bot changes.
+	* neo/game/gamesys/SysCvar.h:  python bot changes.
+	* neo/game/physics/Physics_Player.cpp:  python bot changes.
+	* neo/renderer/Cinematic.cpp:  python bot changes.
+	* neo/renderer/Image_init.cpp:  python bot changes.
+	* neo/renderer/Image_program.cpp:  python bot changes.
+	* neo/renderer/RenderWorld.cpp:  increased the size of the interactionTable.
+	* neo/sys/linux/main.cpp:  added a prompt to the console.

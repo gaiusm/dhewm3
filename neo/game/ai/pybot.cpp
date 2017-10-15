@@ -61,7 +61,7 @@ Author:  Gaius Mulley  <gaius@gnu.org>
 #include "Trigger.h"
 #include "Game_local.h"
 
-static bool pydeveloper = true;   /* set to false, upon release or release testing.  */
+static bool pydeveloper = false;   /* set to false, upon release or release testing.  */
 
 const bool debugging = true;
 const bool protocol_debugging = false;
