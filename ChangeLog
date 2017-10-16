@@ -2,6 +2,8 @@
 
 	* neo/game/ai/pybot.py:  (dict::turn) fixed no return bug.
           Added dummy returns and asserts to aid compiler warnings.
+	* python-bot/dijkstra.py:  new file.
+	* python-bot/botlib.py:  removed debugging print.
 
 2017-10-15      Gaius Mulley <gaius@gnu.org>
 

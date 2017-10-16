@@ -92,8 +92,8 @@ class bot:
         self.s = self.connectBot (server, p, name)
         self._maxX = None
         self._maxY = None
-        print "remember to uncomment the line below (botlib.py)"
         self._aas = aas (self._getPenMapName ())
+
 
     #
     #  connectSS - connects to the superserver
