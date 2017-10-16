@@ -1,3 +1,8 @@
+2017-10-16      Gaius Mulley <gaius@gnu.org>
+
+	* neo/game/ai/pybot.py:  (dict::turn) fixed no return bug.
+          Added dummy returns and asserts to aid compiler warnings.
+
 2017-10-15      Gaius Mulley <gaius@gnu.org>
 
 	* neo/game/ai/pybot.cpp:  assign pydeveloper to false.

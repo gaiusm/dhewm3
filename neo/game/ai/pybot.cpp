@@ -307,6 +307,8 @@ int item::turn (int angle, int angle_vel)
     case item_player:
       return idplayer->Turn (angle, angle_vel);
     }
+  assert (false);
+  return 0;
 }
 
 
@@ -325,6 +327,8 @@ const char *item::penmap (void)
     case item_player:
       return idplayer->PenMap ();
     }
+  assert (false);
+  return NULL;
 }
 
 
@@ -609,7 +613,7 @@ bool dict::aim (int id, int enemy)
 
 int dict::turn (int id, int angle, int angle_vel)
 {
-  entry[id]->turn (angle, angle_vel);
+  return entry[id]->turn (angle, angle_vel);
 }
 
 
