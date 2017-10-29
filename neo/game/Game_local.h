@@ -345,7 +345,11 @@ public:
 	// ---------------------- Public idGameLocal Interface -------------------
 
 	int                                     FindNoOfPythonClients (void);  // gaius
-        const char *                            FindPenMap (void);  // gaius
+#if 1
+	const char *FindDefinition (const char *a);   // gaius
+	int FindEntityFromPair (const char *a, const char *b);  // gaius
+	int FindEntityFromName (const char *name);  // gaius
+#endif
 	void					Printf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					DPrintf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					Warning( const char *fmt, ... ) const id_attribute((format(printf,2,3)));

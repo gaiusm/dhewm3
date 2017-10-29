@@ -23,26 +23,23 @@
 #
 
 from array2d import array2d
+from chvec import *
+from botutils import *
+
 import sys
 import os
 initMapSize = 1
 
+
 mapdir = os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps")
 debugging = False
-
+debugroute = False
 
 status_open, status_closed, status_secret = range (3)
-rooms = {}         # dictionary of rooms
-maxx, maxy = 0, 0  #  the size of our map
-
-
-#
-#  printf - keeps C programmers happy :-)
-#
-
-def printf (format, *args):
-    print str(format) % args,
-
+rooms = {}           #  dictionary of rooms
+maxx, maxy = 0, 0    #  the size of our map
+INFINITY = 1000000   #  must be bigger than all computed distance costs
+wallCost = 0         #  a number used to represent the cost of going through a wall
 
 class roomInfo:
     def __init__ (self, r, w, d):
@@ -104,7 +101,7 @@ def isHorizontal (c):
 def toLine (l):
     l = [[int (l[0][0]), int (l[0][1])], [int (l[1][0]), int (l[1][1])]]
     return _sortWall (l)
-        
+
 #
 #  sortWall - order a wall coordinate left, bottom to right, top
 #
@@ -138,18 +135,16 @@ def newRoom (n):
 
 class aas:
     def __init__ (self, mapname):
-        self._verbose = False        
-        self._rooms = {}
+        self._verbose = False
         self._floor = array2d (initMapSize, initMapSize, ' ')
-        self._weightings = array2d (initMapSize, initMapSize, [1])        
+        self._weightings = array2d (initMapSize, initMapSize, [1])
         self._currentLineNo = 1
         self._loadMap (mapname)
-        self._recreateFloor ()
+        self._recreateFloor (None)
         self._calcWeightings ()
 
-    
     #
-    #  _drawLine - 
+    #  _drawLine -
     #
 
     def _drawLine (self, w, c):
@@ -161,7 +156,7 @@ class aas:
                 self._floor.set (x, w[0][1], c)
 
     #
-    #  _weightLine - 
+    #  _weightLine -
     #
 
     def _weightLine (self, w, c):
@@ -171,14 +166,14 @@ class aas:
         else:
             for x in range (w[0][0], w[1][0]+1):
                 self._weightings.set (x, w[0][1], c)
-        
+
 
     #
     #  recreateFloor - delete the current floor
     #                  and recreate it with current knowledge.
     #
 
-    def _recreateFloor (self):
+    def _recreateFloor (self, b):
         del self._floor
         self._floor = array2d (initMapSize, initMapSize, ' ')
         for r in rooms.keys ():
@@ -187,17 +182,43 @@ class aas:
             for d in rooms[r].doors:
                 self._drawLine (d[0], ' ')
         self.printFloor ()
+        if b != None:
+            self._updateEntities (b)
+
+    #
+    #  updateKnowlege - generate a floor map with all static and dynamic entities
+    #                   placed on it.
+    #
+
+    def updateKnowlege (self, b):
+        self._recreateFloor (b)
+
+
+    #
+    #  _calcWeightings - calculate the movement cost matrix for all the area.
+    #                    It chooses cost of 1 to move a square and represents
+    #                    walls by wallCost.
+    #
 
     def _calcWeightings (self):
         del self._weightings
         self._weightings = array2d (self._floor.high ()[0], self._floor.high ()[1], [1])
         for r in rooms.keys ():
             for w in rooms[r].walls:
-                self._weightLine (w, [0])
+                self._weightLine (w, [wallCost])
             for d in rooms[r].doors:
                 self._weightLine (d[0], [1])
-        self.printWeightings ()                        
-        
+        self.printWeightings ()
+
+    #
+    #  updateEntities - add movable and fixed entities to our aa map.
+    #
+
+    def _updateEntities (self, b):
+        self._entities = []
+        for e in range (b.maxobj ()):
+            pass
+
     #
     #  printFloor - print out the floor plan of the map
     #
@@ -209,7 +230,7 @@ class aas:
                 s += self._floor.get (i, j)
             printf ("%s\n", s)
 
-            
+
     #
     #  printWeightings - print out the floor weighings of the map
     #
@@ -222,7 +243,7 @@ class aas:
                 else:
                     sys.stdout.write ('1')
             printf ("\n")
-    
+
     #
     #  lexicalPen - return a list of tokens to be read by the parser.
     #               A special token <eoln> is added at the end of each line.
@@ -609,10 +630,198 @@ class aas:
             return True
         return False
 
+    #
+    #  calcnav - calculate the navigation route between us and object, d.
+    #            No movement is done, it only works out the best route.
+    #            This is quite expensive and should be used sparingly.
+    #            It returns the total distance between ourself and
+    #            object, d, assuming this route was followed.  Notice
+    #            this is not the same as a line of sight distance.
+    #            The distance returned is a doom3 unit.
+    #
+
+    def calcnav (self, src, dest):
+        self._neighbours = {}
+        self._cost = {}
+        self._prev = {}
+        self._route = []
+        self._choices = [src]
+        self._setCostRoute (src, 1, src)
+        self._visited = []
+        print "src =", src, "dest =", dest
+        if equVec (src, dest):
+            self._route = [dest]
+            return 0
+        while self._choices != []:
+            # print "we have the following nodes to explore:", self._choices
+            u = self._getBestChoice ()
+            self._visited += [u]
+            if debugroute:
+                print "have chosen", u, "cost from src is", self._getCost (u)
+            if equVec (u, dest):
+                if debugroute:
+                    print "found end of route"
+                self._route = self._defineRoute (src, dest)
+                return self._getCost (dest)
+            for v in self._getNeighbours (u):
+                self._addChoice (v)
+                alternative = self._getCost (u) + self._getLength (v)
+                if alternative < self._getCost (v):
+                    if debugroute:
+                        print "found a better route to '", v, "' value", alternative, "from '", src, "'"
+                    self._setCostRoute (v, alternative, u)
+        return None
+
+
+    def _setCostRoute (self, n, cost, prev):
+        k = '%d_%d' % (n[0], n[1])
+        if debugroute:
+            print 'cost[', k, '] =', cost, 'prev =', prev, '_prev[', k, '] =', prev
+        self._cost[k] = cost
+        self._prev[k] = prev
+
+
+    #
+    #  defineRoute - build a list of previous entries from dest, back to src.
+    #
+
+    def _defineRoute (self, src, dest):
+        print "route from", src, "to", dest, "is",
+        r = [dest]
+        while src != dest:
+            k = '%d_%d' % (dest[0], dest[1])
+            dest = self._prev[k]
+            r += [dest]
+        r.reverse ()
+        print r
+        return r
+
+
+    #
+    #  getHop - return the location of the, hop, square used in the route.
+    #           return route[hop]   (which will be a 2d coordinate)
+    #
+
+    def getHop (self, hop):
+        if hop > len (self._route):
+            return self._route[-1]
+        return self._route[hop]
+
+
+    #
+    #  removeHop - in:  index, i, into the journey route.  p, coordinate.
+    #              out:  if p is at position, i, and the journey has more than
+    #                    one step then this step is removed.
+    #
+
+    def removeHop (self, i, p):
+        if (len (self._route) > 1) and (i < len (self._route)):
+            if equVec (p, self._route[i]):
+                del self._route[i]
+
+
+    #
+    #  addChoice - adds a unique choice to the choices list
+    #
+
+    def _addChoice (self, c):
+        if len (self._choices) > 0:
+            for i in self._choices:
+                if equVec (i, c):
+                    return
+            for i in self._visited:
+                if equVec (i, c):
+                    return
+        self._choices += [c]
+
+
+    #
+    #  getBestChoice - return the lowest choice cost
+    #
+
+    def _getBestChoice (self):
+        c = self._choices[0]
+        cost = self._getCost (c)
+        z = 0
+        if len (self._choices) > 0:
+            for x, i in  enumerate (self._choices[1:]):
+                if self._getCost (i) < cost:
+                    c = i
+                    cost = self._getCost (c)
+                    z = x
+        del self._choices[z]
+        return c
+
+
+    #
+    #  getCost - return the cost of moving to position, p.
+    #
+
+    def _getCost (self, p):
+        k = '%d_%d' % (p[0], p[1])
+        if not self._cost.has_key (k):
+            if debugroute:
+                print "no cost entry, setting to infinity", k
+            self._cost[k] = INFINITY
+        return self._cost[k]
+
+
+    #
+    #  _getLength - return the
+    #
+
+    def _getLength (self, p):
+        if self._weightings.get (p[0], p[1]) == wallCost:
+            return INFINITY
+        f = self._weightings.get (p[0], p[1])
+        return f
+
+
+    #
+    #  _getNeighbours - returns the neighbours of, p.
+    #
+
+    def _getNeighbours (self, p):
+        k = '%d_%d' % (p[0], p[1])
+        if not self._neighbours.has_key (k):
+            n = []
+            for v in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
+                w = addVec (p, v)
+                if self._weightings.inRange (w[0], w[1]) and (self._weightings.get (w[0], w[1]) != wallCost):
+                    n += [w]
+            self._neighbours[k] = n
+        return self._neighbours[k]
+
+
+    #
+    #  getPlayerStart - returns the pen coordinates of the initial spawn point
+    #                   of the human player.
+    #
+
+    def getPlayerStart (self):
+        for r in rooms.keys ():
+            if rooms[r].worldspawn != []:
+                return rooms[r].worldspawn[0]
+        print "the pen map should contain one worldspawn location"
+        print "this needs to be fixed before area awareness makes any sence to the bot"
+        return [1, 1]
+
+
+#
+#  intVec - return a vector of two integers.
+#
+
+def intVec (v):
+    return [int (v[0]), int (v[1])]
+
 
 def _runtests ():
     m = aas (os.path.join (os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps"),
                            "tiny.pen"))
+    c = m.calcnav (intVec (rooms['1'].worldspawn[0]), intVec (rooms['1'].pythonMonsters[0][1]))
+    print "cost =", c
+    print m._route
+
 
 if __name__ == "__main__":
     _runtests ()

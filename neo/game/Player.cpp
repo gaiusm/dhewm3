@@ -6655,18 +6655,6 @@ int idPlayer::Turn (int angle, int angle_vel)
 
 
 /*
-==============
-idPlayer::PenMap  return the penmap name.  // gaius
-==============
- */
-
-const char *idPlayer::PenMap (void)
-{
-  return gameLocal.FindPenMap ();
-}
-
-
-/*
 =============
 idPlayer::Aim  (gaius)
 =============

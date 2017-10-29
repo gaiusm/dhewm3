@@ -116,3 +116,11 @@ class array2d:
 
     def high (self):
         return [self.x, self.y]
+
+    #
+    #  inRange - return True if, x, y can index into the array.
+    #
+
+    def inRange (self, x, y):
+        h = self.high ()
+        return (x >= 0) and (x < h[0]) and (y >= 0) and (y < h[1])

@@ -28,169 +28,44 @@ import sys
 import os
 
 from botaa import aas
-from socket import *
+from botbasic import basic
+from botcache import cache
+from chvec import *
+from math import atan2
 
-superServer = 7000
-debug_protocol = False
-
-
-#
-#  printf - keeps C programmers happy :-)
-#
-
-def printf (format, *args):
-    print str(format) % args,
+pen2doom3units = 48   # inches per ascii square
 
 
 class bot:
     #
-    #  __init__ the constructor for class bot which
-    #           connects to the superserver to find out
-    #           the bot port.  It then connects to the
-    #           bot port.
+    #  __init__ the constructor for bot class which
+    #           joins together all the lower layers in the AI
     #
 
     def __init__ (self, server, name):
-        global superServer
-        while True:
-            self.s = self.connectSS (server)
-            #
-            #  firstly we need to double check the superServer is on this port
-            #  as a quick rerun of the game might have forced a different portno.
-            #  The bot server will also know the superServer port and will tell us
-            #  the port of the superServer.
-            #
-            self.s.send ('super\n')
-            p = int (self.getPort ())
-            print superServer, p
-            if p == superServer:
-                print "successfully double checked the superserver port"
-                self.s.close ()             # all done with that connection,
-                # we reconnect and go for the real bot request.
-                self.s = self.connectSS (server)
-                #
-                #  all good, we now ask it about the botserver portno
-                #
-                print "sending botname request to superserver", name
-                self.s.send (name + '\n')   # specific botserver requested
-                print "waiting for port reply from superserver", name
-                p = int (self.getPort ())
-                print "about to close this socket", name
-                self.s.close ()             # all done with the superServer
-                if p != 0:
-                    print "found botname", name, "port is", p
-                    break                   # found the portno
-                #
-                #  at this point either the bot server is not ready.
-                #  We need to wait and try again.
-                #
-                time.sleep (1)
-            else:
-                self.s.close ()             # all done with this server
-                superServer = p             # superServer has moved portno
-                print "superserver has changed port to", p
-        self.s = self.connectBot (server, p, name)
-        self._maxX = None
-        self._maxY = None
-        self._aas = aas (self._getPenMapName ())
+        self._cache = cache (server, name)
+        self._aas = aas (self.getPenMapName ())
+        initPosPen = self._aas.getPlayerStart ()
+        initPosD3 = self._cache.getPlayerStart ()
+        self._scaleX = float (pen2doom3units)
+        self._scaleY = float (pen2doom3units)
+        print "initPosPen =", initPosPen, "initPosD3 =", initPosD3
 
 
     #
-    #  connectSS - connects to the superserver
+    #  getPenMapName - return the name of the pen map.
     #
 
-    def connectSS (self, server):
-        global superServer
-        print "bot trying to connect to the superserver on port", superServer
-        i = 0
-        while True:
-            for j in range (10):
-                success, s = self.tryConnectSS (server, superServer+j)
-                if success:
-                    superServer = superServer+j
-                    print "bot connected to superserver on port", superServer
-                    return s
-            sys.stdout.write (".")
-            sys.stdout.flush ()
-            time.sleep (2)
-
-    #
-    #  tryConnectSS - tries to make a connection to server:port
-    #                 It returns a pair: bool, socket.
-    #
-
-    def tryConnectSS (self, server, port):
-        try:
-            s = socket (AF_INET, SOCK_STREAM)
-            s.connect ((server, port))
-            return True, s
-        except:
-            return False, None
-
-    #
-    #  getPort - returns the portNo from the superserver.
-    #
-
-    def getPort (self):
-        return self.getLine ()
-
-    #
-    #  getLine - read a character at a time until \n is seen.
-    #
-
-    def getLine (self):
-        l = ""
-        while True:
-            c = self.s.recv (1)
-            if c == '\n':
-                break
-            l += c
-        if debug_protocol:
-            print "<socket has sent>", l
-        return l
-
-    #
-    #  connectBot - connects to the bot server
-    #
-
-    def connectBot (self, server, port, name):
-        s = socket (AF_INET, SOCK_STREAM)
-        print "python bot trying to connect to the bot server", port, name
-        i = 0
-        while True:
-            try:
-                s.connect ((server, port))
-                break
-            except:
-                print ".",
-                sys.stdout.flush ()
-                time.sleep (1)
-        print "bot connected to bot server"
-        return s
+    def getPenMapName (self):
+        return self._cache.getPenMapName ()
 
 
     #
-    #  getpos - makes a request to the doom3 server to find the
-    #           location of, obj.
-    #           returns a list [x, y, z] values
-    #           (units are doom3 units).
-    #
-
-    def getpos (self, obj):
-        l = "getpos %d\n" % (obj)
-        if debug_protocol:
-            print "getpos command:", l
-        self.s.send (l)
-        return self.getLine ()
-
-
-    #
-    #  me - return the id of this bot.
+    #  me - return the bots entity, id.
     #
 
     def me (self):
-        self.s.send ("self\n")
-        return int (self.getLine ())
+        return self._cache.me ()
 
 
     #
@@ -199,36 +74,75 @@ class bot:
     #
 
     def maxobj (self):
-        self.s.send ("maxobj\n")
-        return int (self.getLine ())
+        return self._cache.maxobj ()
 
 
     #
-    #  objectname - return the name of the object, d.
-    #  (not yet implemented in the doom3 server)
+    #  allobj - return a list of all objects
+    #
 
-    def objectname (self, d):
-        l = "objectname %d\n" % (d)
-        self.s.send (l)
-        return self.getLine ()
+    def allobj (self):
+        return self._cache.allobj ()
 
 
     #
-    #  isvisible - return True if object, d, is line of sight visible.
-    #  (not implemented yet)
+    #  getpos - return the position of, obj in doom3 units.
     #
 
-    def isvisible (self, d):
-        return False
-
+    def getpos (self, obj):
+        return self._cache.getpos (obj)
 
     #
-    #  isfixed - return True if the object is a static fixture in the map.
-    #  (not implemented yet)
+    #  forward - step forward at velocity, vel, for dist, units.
     #
 
-    def isfixed (self, d):
-        return False
+    def forward (self, vel, dist):
+        return self._cache.forward (vel, dist)
+
+    #
+    #  back - step back at velocity, vel, for dist, units.
+    #
+
+    def back (self, vel, dist):
+        return self._cache.back (vel, dist)
+
+    #
+    #  left - step left at velocity, vel, for dist, units.
+    #
+
+    def left (self, vel, dist):
+        return self._cache.left (vel, dist)
+
+    #
+    #  right - step right at velocity, vel, for dist, units.
+    #
+
+    def right (self, vel, dist):
+        return self._cache.right (vel, dist)
+
+    #
+    #  turn - turn to face, angle.
+    #
+
+    def turn (self, angle, angle_vel):
+        return self._cache.turn (angle, angle_vel)
+
+    #
+    #  select - wait for any desired event:  legal events are
+    #           ['move', 'fire', 'turn', 'reload'].
+    #
+
+    def select (self, l):
+        return self._cache.select (l)
+
+    #
+    #  sync - wait for any event to occur.
+    #         The event will signify the end of
+    #         move, fire, turn, reload action.
+    #
+
+    def sync (self):
+        return self._cache.sync ()
 
     #
     #  angle - return the angle the object, d, is facing.
@@ -238,7 +152,6 @@ class bot:
 
     def angle (self, d):
         return 0
-
 
     #
     #  calcnav - calculate the navigation route between us and object, d.
@@ -251,230 +164,120 @@ class bot:
     #
 
     def calcnav (self, d):
-        return self._aas.calcnav (getpos (me ()), getpos (d))
+        src = self.d2pv (self.getpos (self.me ()))
+        dest = self.d2pv (self.getpos (d))
+        return self.p2d (self._aas.calcnav (src, dest))
 
 
     #
-    #  anglenav - return the proposed angle necessary to follow the
-    #             navigation route.
+    #  turnface - turn and face vector.
     #
 
-    def anglenav (self):
-        return 0
+    def turnface (self, v, vel):
+        print "v =", v,
+        if v[0] == 0:
+            print "not using atan2"
+            if v[1] > 0:
+                angle = 180
+            else:
+                angle = 0
+        elif v[1] == 0:
+            print "not using atan2"
+            if v[0] > 0:
+                angle = 90
+            else:
+                angle = 270
+        else:
+            print "using atan2"
+            angle = int (atan2 (v[0], v[1]) * 180.0)   # radians into degrees
+            angle += 360
+            angle %= 360
+        print "angle =", angle
+        self.turn (angle, vel)
 
+
+    #
+    #  d2pv - convert a doom3 coordinate into a penguin tower coordinate.
+    #         converted vector is returned.
+    #
+
+    def d2pv (self, v):
+        r = []
+        if len (v) > 1:
+            r += [v[1]/(-pen2doom3units)+1]   # x and y are switched between maps
+            r += [v[0]/(-pen2doom3units)+1]
+        return r
+
+    #
+    #  p2d - in:   a penguin tower unit.
+    #        out:  return a d3 unit.
+    #
+
+    def p2d (self, u):
+        return pen2doom3units * u
 
     #
     #  journey - move at velocity, vel, for a distance, dist
     #            along the navigation route calculated in calcnav.
-    #  (not completely implemented yet)
     #
 
-    def journey (self, vel, dist):
-        while self.turn (self.anglenav () and (dist == 0)):
-            if dist > p2d (1):
-                d = p2d (1)
+    def journey (self, vel, dist, dest):
+        dest = self.d2pv (dest)
+        print "aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ()))
+        while (dist > 0) and (vel != 0) and (not equVec (self._aas.getHop (0), dest)):
+            dist = self.ssNav (vel, dist, self._aas.getHop (0))
+            print "journey: reached coord", self._aas.getHop (0)
+            self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
+        self.reset ()
+
+
+    #
+    #  ssNav - single square navigate, turn and move to position, h,
+    #          which should be an adjacent square.
+    #
+
+    def ssNav (self, vel, dist, h):
+        p = self.d2pv (self.getpos (self.me ()))
+        while (dist > 0) and (not equVec (h, p)):
+            self.turnface (subVec (h, p), vel)
+            self.sync ()
+            if dist > self.p2d (1):
+                d = self.p2d (1)
             else:
                 d = dist
             self.forward (vel, d)
-            self.sync ()  # place self.sync into forward when it works
+            self.sync ()
             dist -= d
+            p = self.d2pv (self.getpos (self.me ()))
+        return dist
 
 
     #
-    #  right - step right at velocity, vel, for dist, units.
+    #  face - turn to face object, i.  If we are close we attempt to aim
+    #         at object.
     #
 
-    def right (self, vel, dist):
-        v = int (vel)
-        d = int (dist)
-        l = "right %d %d\n" % (v, d)
-        if debug_protocol:
-            print "requesting a right step", v, d
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-    #
-    #  forward - step forward at velocity, vel, for dist, units.
-    #
-
-    def forward (self, vel, dist):
-        v = int (vel)
-        d = int (dist)
-        l = "forward %d %d\n" % (v, d)
-        if debug_protocol:
-            print "requesting a forward step", v, d
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
+    def face (self, i):
+        self.reset ()
+        p = self.d2pv (self.getpos (self.me ()))
+        h = self.d2pv (self.getpos (i))
+        self.turnface (subVec (h, p), 1)
+        self.sync ()
+        if equVec (p, h):
+            self.aim (i)
 
 
     #
-    #  left - step left at velocity, vel, for dist, units.
-    #
-
-    def left (self, vel, dist):
-        return self.right (-vel, dist)
-
-
-    #
-    #  back - step back at velocity, vel, for dist, units.
-    #
-
-    def back (self, vel, dist):
-        return self.forward (-vel, dist)
-
-
-    def stepvec (self, velforward, velright, dist):
-        f = int (velforward)
-        r = int (velright)
-        d = int (dist)
-        l = "stepvec %d %d %d\n" % (f, r, d)
-        if debug_protocol:
-            print "requesting a forward step", f, r, d
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #
-    #
-
-    def sync (self):
-        if debug_protocol:
-            print "requesting sync"
-        self.s.send ("select any\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return l
-
-    #
-    #  select - wait for any event:  legal events are
-    #           ['move', 'fire', 'turn', 'reload'].
-    #
-
-    def select (self, l):
-        b = 0
-        for w in l:
-            if w == 'move':
-                b += 1
-            elif w == 'fire':
-                b += 2
-            elif w == 'turn':
-                b += 4
-            elif w == 'reload':
-                b += 8
-            else:
-                printf ("incorrect parameter to select (%s)\n", w)
-        l = "select %d\n" % (b)
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #  start_firing - fire weapon
-    #                 It returns the amount of ammo left.
-    #
-
-    def start_firing (self):
-        if debug_protocol:
-            print "requesting to fire weapon"
-        self.s.send ("start_firing\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #  stop_firing - fire weapon
-    #                It returns the amount of ammo left.
-    #
-
-    def stop_firing (self):
-        if debug_protocol:
-            print "requesting to stop firing weapon"
-        self.s.send ("stop_firing\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #  reload_weapon - reload the current weapon
-    #                  It returns the amount of ammo left.
-    #
-
-    def reload_weapon (self):
-        if debug_protocol:
-            print "requesting to reload weapon"
-        self.s.send ("reload_weapon\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #  ammo - returns the amount of ammo for the current weapon.
-    #
-
-    def ammo (self):
-        if debug_protocol:
-            print "requesting ammo"
-        self.s.send ("ammo\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return int (l)
-
-
-    #
-    #  aim - aim weapon at player, i
+    #  aim - aim at object, i.
     #
 
     def aim (self, i):
-        if debug_protocol:
-            print "requesting aim at", i
-        l = "aim %d\n" % (i)
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return l == 'true'
+        self._cache.reset ()
+        self._cache.aim (i)
 
     #
-    #  turn - turn to face, angle.
+    #  reset - reset the cache.
     #
 
-    def turn (self, angle, angle_vel):
-        if debug_protocol:
-            print "requesting turn ", angle, angle_vel
-        l = "turn %d %d\n" % (angle, angle_vel)
-        self.s.send (l)
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return l == 'true'
-
-
-    def _getPenMapName (self):
-        if debug_protocol:
-            print "requesting penmap"
-        self.s.send ("penmap\n")
-        l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return l
+    def reset (self):
+        self._cache.reset ()

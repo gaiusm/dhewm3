@@ -117,6 +117,9 @@ class pyBotClass
   void rpcTurn (char *data);
   void rpcPenMap (void);
   void rpcSelect (char *data);
+  void rpcGetClassNameEntity (char *data);
+  void rpcGetPairEntity (char *arg);
+  void rpcGetEntityPos (char *data);
   int myid;
   char *name;
   int portNo;

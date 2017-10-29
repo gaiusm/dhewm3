@@ -403,6 +403,8 @@ public:
 	// ---------------------- Public idGameLocal Interface -------------------
 
 	int                                     FindNoOfPythonClients (void);
+        const char *                            FindClassName (const char *name);  // gaius
+	int FindEntityFromName (const char *name);  // gaius
 	void					Printf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					DPrintf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));
 	void					Warning( const char *fmt, ... ) const id_attribute((format(printf,2,3)));

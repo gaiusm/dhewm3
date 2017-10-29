@@ -1,3 +1,28 @@
+2017-10-29      Gaius Mulley <gaius@gnu.org>
+
+	* neo/d3xp/Game_local.h:  New method (FindClassName).
+	* neo/game/Game_local.cpp:  New method (FindDefinition)
+          replaces FindPenMap.  New method (FindEntityFromPair).
+          New method (FindEntityFromName).
+	* neo/game/Game_local.h:  New methods (FindDefinition),
+          (FindEntityFromPair), (FindEntityFromName).
+	* neo/game/Player.cpp:  (idPlayer::PenMap) removed.
+	* neo/game/Player.h:  (idPlayer::PenMap) removed.
+	* neo/game/ai/pybot.cpp:  protocol_debugging (True).
+          (penmap) removed.  Use getenv to turn on debugging.
+          (rpcGetClassNameEntity) new method.  (rpcGetPairEntity)
+          new method.  (rpcGetEntityPos) new method.  (rpcPenMap)
+          reimplemented.
+	* neo/game/ai/pybot.h:  (rpcGetClassNameEntity) new method.
+          (rpcGetPairEntity) new method.  (rpcGetEntityPos) new
+          method.
+	* python-bot/array2d.py:  (inRange) New method.
+	* python-bot/botaa.py:  implement Dijkstra algorithm
+          for penmap.
+	* python-bot/botlib.py:  Rewritten.
+	* python-bot/python_doommarine_1.py:  Rewritten.
+
+
 2017-10-16      Gaius Mulley <gaius@gnu.org>
 
 	* neo/game/ai/pybot.py:  (dict::turn) fixed no return bug.

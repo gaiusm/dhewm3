@@ -61,10 +61,8 @@ Author:  Gaius Mulley  <gaius@gnu.org>
 #include "Trigger.h"
 #include "Game_local.h"
 
-static bool pydeveloper = true;   /* set to false, upon release or release testing.  */
-
 const bool debugging = true;
-const bool protocol_debugging = false;
+const bool protocol_debugging = true;
 
 #define S(x) #x
 #define S_(x) S(x)
@@ -133,7 +131,6 @@ class item
   int turn (int angle, int angle_vel);
   idEntity *getIdEntity (void);
   void select (int mask);
-  const char *penmap (void);
 
  private:
   enum {item_none, item_monster, item_player, item_ammo} kind;
@@ -313,26 +310,6 @@ int item::turn (int angle, int angle_vel)
 
 
 /*
- *  penmap - request the penmap name.
- */
-
-const char *item::penmap (void)
-{
-  switch (kind)
-    {
-#if 0
-    case item_monster:
-      return idai->PenMap ();   // --fixme-- is this correct?
-#endif
-    case item_player:
-      return idplayer->PenMap ();
-    }
-  assert (false);
-  return NULL;
-}
-
-
-/*
  *  start_firing - start firing and return the amount of ammo.
  */
 
@@ -447,7 +424,6 @@ class dict
   bool aim (int id, int enemy);
   int turn (int id, int angle, int angle_vel);
   void select (int id, int mask);
-  const char *penmap (int id);
   int getHigh (void);
  private:
   item *entry[MAX_ENTRY];
@@ -624,16 +600,6 @@ int dict::turn (int id, int angle, int angle_vel)
 void dict::select (int id, int mask)
 {
   entry[id]->select (mask);
-}
-
-
-/*
- *  penmap - return the pen mapname.
- */
-
-const char *dict::penmap (int id)
-{
-  return entry[id]->penmap ();
 }
 
 
@@ -1154,9 +1120,7 @@ void developerHelp (const char *name)
 
 void forkScript (const char *name)
 {
-  if (pydeveloper)
-    developerHelp (name);
-  else
+  if (getenv ("DEBUG_PYBOT") == NULL)
     {
       char buffer[PATH_MAX];
 
@@ -1175,6 +1139,8 @@ void forkScript (const char *name)
 	/* add pid to list of pids and kill them off at the end of the game.  */
 	;
     }
+  else
+    developerHelp (name);
 }
 
 
@@ -1442,6 +1408,12 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcPenMap ();
   else if (idStr::Cmpn (data, "select ", 7) == 0)
     rpcSelect (&data[7]);
+  else if (idStr::Cmpn (data, "get_class_name_entity ", 22) == 0)
+    rpcGetClassNameEntity (&data[22]);
+  else if (idStr::Cmpn (data, "get_pair_name_entity ", 21) == 0)
+    rpcGetPairEntity (&data[21]);
+  else if (idStr::Cmpn (data, "get_entity_pos ", 15) == 0)
+    rpcGetEntityPos (&data[15]);
   else
     {
       gameLocal.Printf ("data = \"%s\", len (data) = %d\n", data, (int) strlen (data));
@@ -1719,7 +1691,7 @@ void pyBotClass::rpcPenMap (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcPenMap called by python\n");
 
-  const char *p = dictionary->penmap (myid);
+  const char *p = gameLocal.FindDefinition ("penmap");
   if (p == NULL)
     strcpy (buf, "\n");
   else
@@ -1848,6 +1820,84 @@ void pyBotClass::rpcReloadWeapon (void)
     ammo = 0;
 
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcGetClassNameEntity - lookup the number of the entity containing classname, data.
+ *                          -1 is returned on failure.
+ */
+
+void pyBotClass::rpcGetClassNameEntity (char *data)
+{
+  char buf[1024];
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetClassNameEntity (%s) called by python\n", data);
+
+  int ent_no = gameLocal.FindEntityFromName (data);
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", ent_no);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcGetPairEntity - lookup the number of the entity containing the strings:  a, b.
+ *                     arg contains string, a, followed by string, b.
+ *                     -1 is returned on failure.
+ */
+
+void pyBotClass::rpcGetPairEntity (char *arg)
+{
+  char buf[1024];
+  char *a = arg;
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetPairEntity (%s) called by python\n", arg);
+
+  char *b = index (arg, ' ');
+  if (b != NULL)
+    {
+      *b = (char)0;
+      b++;
+    }
+
+  int ent_no = gameLocal.FindEntityFromPair (a, b);
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", ent_no);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcGetEntityPos - generate an x, y, z string and send it back to the script.
+ *                    The parameter, data, contains the entity number.
+ */
+
+void pyBotClass::rpcGetEntityPos (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetentityPos (%s) call by python\n", data);
+
+  char buf[1024];
+  int id = checkId (atoi (data));
+
+  if (id >= 0)
+    {
+      const idVec3 &org = gameLocal.GetEntityOrigin (id);
+
+      idStr::snPrintf (buf, sizeof (buf), "%g %g %g\n",
+		       org.x, org.y, org.z);
+    }
+  else
+    strcpy (buf, "error invalid id sent to getentitypos\n");
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetEntityPos responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }

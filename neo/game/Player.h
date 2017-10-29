@@ -590,7 +590,6 @@ public:
 	int Ammo (void);  // gaius
         int Turn (int angle, int angle_vel);   // gaius
 	void doTurn (int angle);	// gaius
-	const char *PenMap (void);  // gaius
 	void select (int bitmask);  // gaius
 
 private:

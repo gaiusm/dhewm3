@@ -868,21 +868,62 @@ int idGameLocal::FindNoOfPythonClients (void)
 
 
 /*
- *  FindPenMap - return the penmap filename.
+ *  FindDefinition - return the definition of, a, in the entity dictionary.
  *  (gaius)
  */
 
-const char *idGameLocal::FindPenMap (void)
+const char *idGameLocal::FindDefinition (const char *a)
 {
-  for (int i = 0; i < mapFile->GetNumEntities(); i++)
+  for (int i = 0; i < mapFile->GetNumEntities (); i++)
     {
       idMapEntity *mapEnt = mapFile->GetEntity (i);
 
-      const char *mapname;
-      if (mapEnt->epairs.GetString ("penmap", "", &mapname))
-        return mapname;
+      const char *def;
+      if (mapEnt->epairs.GetString (a, "", &def))
+        return def;
     }
   return "";
+}
+
+
+/*
+ *  FindEntityFromPair - return the entity containing the string
+ *                       pair:  a, b.
+ *  (gaius)
+ */
+
+int idGameLocal::FindEntityFromPair (const char *a, const char *b)
+{
+  Printf ("FindEntityFromPair %s, %s\n", a, b);
+  for (int i = 0; i < mapFile->GetNumEntities (); i++)
+    {
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+
+      const char *def;
+      if (mapEnt->epairs.GetString (a, "", &def)
+	  && (strcmp (b, def) == 0))
+        return i;
+    }
+  return -1;
+}
+
+
+/*
+ *  FindEntityFromName - return the entity number using, name.
+ *  (gaius)
+ */
+
+int idGameLocal::FindEntityFromName (const char *name)
+{
+  for (int i = 0; i < mapFile->GetNumEntities (); i++)
+    {
+      idMapEntity *mapEnt = mapFile->GetEntity (i);
+      const char *def;
+
+      if (mapEnt->epairs.GetString (name, "", &def))
+        return i;
+    }
+  return -1;
 }
 
 
