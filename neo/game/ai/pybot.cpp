@@ -126,6 +126,9 @@ class item
   int start_firing (void);
   int stop_firing (void);
   int ammo (void);
+  int weapon (int new_weapon);
+  int health (void);
+  int angle (void);
   void reload_weapon (void);
   bool aim (idEntity *enemy);
   int turn (int angle, int angle_vel);
@@ -310,6 +313,23 @@ int item::turn (int angle, int angle_vel)
 
 
 /*
+ *  weapon - attempt to select weapon, new_weapon.
+ *           If successful return the amount of ammo else return -1.
+ */
+
+int item::weapon (int new_weapon)
+{
+  switch (kind)
+    {
+    case item_player:
+      return idplayer->ChangeWeapon (new_weapon);
+    }
+  assert (false);
+  return 0;
+}
+
+
+/*
  *  start_firing - start firing and return the amount of ammo.
  */
 
@@ -354,6 +374,46 @@ int item::stop_firing (void)
 
 int item::ammo (void)
 {
+  return 0;
+}
+
+
+/*
+ *  health -
+ */
+
+int item::health (void)
+{
+  switch (kind)
+    {
+    case item_monster:
+      assert (false);
+      return 0;  // ignore
+      break;
+    case item_player:
+      return idplayer->health;
+    }
+  assert (false);
+  return 0;
+}
+
+
+/*
+ *  angle -
+ */
+
+int item::angle (void)
+{
+  switch (kind)
+    {
+    case item_monster:
+      assert (false);
+      return 0;  // ignore
+      break;
+    case item_player:
+      return idplayer->GetYaw ();
+    }
+  assert (false);
   return 0;
 }
 
@@ -421,10 +481,13 @@ class dict
   int stop_firing (int id);
   int reload_weapon (int id);
   int ammo (int id);
+  int health (int id);
+  int angle (int id);
   bool aim (int id, int enemy);
   int turn (int id, int angle, int angle_vel);
   void select (int id, int mask);
   int getHigh (void);
+  int weapon (int id, int new_weapon);
  private:
   item *entry[MAX_ENTRY];
   int high;
@@ -571,6 +634,26 @@ int dict::ammo (int id)
 
 
 /*
+ *  health - return the health for the bot.
+ */
+
+int dict::health (int id)
+{
+  return entry[id]->health ();
+}
+
+
+/*
+ *  angle - return the angle (yaw) for the bot.
+ */
+
+int dict::angle (int id)
+{
+  return entry[id]->angle ();
+}
+
+
+/*
  *  aim - try and aim at enemy.
  *        If enemy is line of sight visible return true
  *        else return false.
@@ -590,6 +673,18 @@ bool dict::aim (int id, int enemy)
 int dict::turn (int id, int angle, int angle_vel)
 {
   return entry[id]->turn (angle, angle_vel);
+}
+
+
+/*
+ *  weapon - change to new_weapon and return the amount of
+ *           ammo for this weapon.  -1 if the weapon is not
+ *           in the inventory.
+ */
+
+int dict::weapon (int id, int new_weapon)
+{
+  return entry[id]->weapon (new_weapon);
 }
 
 
@@ -1382,6 +1477,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcGetPos (&data[7]);
   else if (strcmp (data, "self") == 0)
     rpcSelf ();
+  else if (strcmp (data, "health") == 0)
+    rpcHealth ();
   else if (strcmp (data, "maxobj") == 0)
     rpcMaxObj ();
   else if (idStr::Cmpn (data, "step ", 5) == 0)
@@ -1404,6 +1501,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcAim (&data[4]);
   else if (idStr::Cmpn (data, "turn ", 5) == 0)
     rpcTurn (&data[5]);
+  else if (strcmp (data, "angle") == 0)
+    rpcAngle ();
   else if (strcmp (data, "penmap") == 0)
     rpcPenMap ();
   else if (idStr::Cmpn (data, "select ", 7) == 0)
@@ -1414,6 +1513,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcGetPairEntity (&data[21]);
   else if (idStr::Cmpn (data, "get_entity_pos ", 15) == 0)
     rpcGetEntityPos (&data[15]);
+  else if (idStr::Cmpn (data, "change_weapon ", 14) == 0)
+    rpcChangeWeapon (&data[14]);
   else
     {
       gameLocal.Printf ("data = \"%s\", len (data) = %d\n", data, (int) strlen (data));
@@ -1481,6 +1582,24 @@ void pyBotClass::rpcSelf (void)
   idStr::snPrintf (buf, sizeof (buf), "%d\n", myid);
   if (protocol_debugging)
     gameLocal.Printf ("rpcSelf responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcHealth - return our health.
+ */
+
+void pyBotClass::rpcHealth (void)
+{
+  char buf[1024];
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcHealth called by python\n");
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", dictionary->health (myid));
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcHealth responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }
@@ -1649,6 +1768,23 @@ void pyBotClass::rpcAim (char *data)
   state = toWrite;
 }
 
+
+/*
+ *  rpcAngle - return the angle of the bot.
+ */
+
+void pyBotClass::rpcAngle (void)
+{
+  char buf[1024];
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcAngle called by python\n");
+
+  int angle = dictionary->angle (myid);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", angle);
+  buffer.pyput (buf);
+  state = toWrite;
+}
 
 /*
  *  rpcTurn - turn to face angle.
@@ -1898,6 +2034,30 @@ void pyBotClass::rpcGetEntityPos (char *data)
     strcpy (buf, "error invalid id sent to getentitypos\n");
   if (protocol_debugging)
     gameLocal.Printf ("rpcGetEntityPos responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcChangeWeapon - attempt to change weapon to the number in data.
+ *                    The amount of ammo is returned.  -1 means no weapon.
+ */
+
+void pyBotClass::rpcChangeWeapon (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcChangeWeapon (%s) call by python\n", data);
+
+  char buf[1024];
+  int weapon = atoi (data);
+  int ammo = -1;
+
+  if (weapon >= 0)
+    ammo = dictionary->weapon (myid, weapon);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcChangeWeapon responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }

@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 #include "Misc.h"
 
-const bool debug_turn = false;
+const bool debug_turn = true;
 const bool debug_select = false;
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
@@ -6641,6 +6641,7 @@ void idPlayer::doTurn (int angle)
 /*
 ==============
 idPlayer::Turn  the player to face angle degrees  (gaius)
+                an angle_vel of 0 is ignored.  The old angle is returned.
 ==============
  */
 
@@ -6648,11 +6649,23 @@ int idPlayer::Turn (int angle, int angle_vel)
 {
   if (debug_turn)
     gameLocal.Printf ("angles = %f, %f, %f\n", viewAngles.pitch, viewAngles.yaw, viewAngles.roll);
-  int yaw = (((int) viewAngles.yaw) + 360) % 360;
-  pulseCount.set_angle (angle, angle_vel, yaw);
+  int yaw = GetYaw ();
+  if (debug_turn)
+    gameLocal.Printf ("viewAngles.yaw = %f, yaw = %d\n", viewAngles.yaw, yaw);
+  if (angle_vel != 0)
+    pulseCount.set_angle (angle, angle_vel, yaw);
   return yaw;
 }
 
+
+/*
+ *  idPlayer::GetYaw - return the yaw of the player.  (gaius)
+ */
+
+int idPlayer::GetYaw (void)
+{
+  return (((int) viewAngles.yaw) + 360) % 360;
+}
 
 /*
 =============
@@ -6702,6 +6715,30 @@ int idPlayer::Fire (bool b)
   if (currentWeapon >= 0 && currentWeapon < MAX_WEAPONS)
     return inventory.ammo[currentWeapon];
   return 0;
+}
+
+
+/*
+=============
+idPlayer::ChangeWeapon  (gaius)  (see StealWeapon and SelectWeapon)
+=============
+ */
+
+int idPlayer::ChangeWeapon (int new_weapon)
+{
+  inventory.weapons = -1;
+  if (new_weapon >= 0 && new_weapon < MAX_WEAPONS)
+    {
+      if ((inventory.weapons & (1 << new_weapon)) != 0)
+	{
+	  /*
+	   *  player is carrying this weapon.
+	   */
+	  SelectWeapon (new_weapon, true);
+	  return inventory.ammo[currentWeapon];
+	}
+    }
+  return -1;
 }
 
 
@@ -8880,7 +8917,7 @@ void selectInfo::set_run (int count)
 
 void selectInfo::set_angle (int final, int inc, int current)
 {
-  angle_final = (final % 360);
+  angle_final = final;
   angle_inc = inc;
   angle_cur = current;
   angle_active = true;
@@ -8923,28 +8960,107 @@ void selectInfo::inc_angle (idPlayer *p)
       if (debug_turn)
 	gameLocal.Printf ("inc_angle (angle_cur = %d, angle_inc = %d, angle_final = %d)\n",
 			  angle_cur, angle_inc, angle_final);
-      if (angle_cur < angle_final)
+
+      if (angle_inc == -1 && angle_final == 270)
+	mystop ();
+      angle_cur += 360;
+      angle_cur %= 360;
+      if (angle_active)
 	{
-	  angle_cur += (angle_inc + 360);
-	  angle_cur %= 360;
-	  if (angle_cur >= angle_final)
-	    /* far enough.  */
-	    angle_cur = angle_final;
-	}
-      else if (angle_cur > angle_final)
-	{
-	  angle_cur += (angle_inc + 360);
-	  angle_cur %= 360;
-	  if (angle_cur <= angle_final)
+          if (angle_cur == angle_final)
 	    {
-	      /* far enough.  */
-	      angle_cur = angle_final;
+	      angle_active = false;
+	      if (debug_turn)
+		gameLocal.Printf ("reached dest angle, turning off\n");
+	    }
+          else
+            {
+              if (angle_inc > 0)
+                {
+		  if (debug_turn)
+		    gameLocal.Printf ("angle_inc > 0\n");
+
+                  if (angle_cur < angle_final)
+                    {
+		      if (debug_turn)
+			gameLocal.Printf ("3. angle_inc < angle_final\n");
+
+                      angle_cur += angle_inc;
+                      if (angle_cur >= angle_final)
+                        {
+                          /* far enough.  */
+                          angle_cur = angle_final;
+                          angle_active = false;
+                        }
+                      angle_cur %= 360;
+                    }
+                  else
+                    {
+		      if (debug_turn)
+			gameLocal.Printf ("4. angle_inc >= angle_final\n");
+
+                      angle_cur += angle_inc;
+                      if (angle_cur <= angle_final)
+                        {
+                          /* far enough.  */
+                          angle_cur = angle_final;
+                          angle_active = false;
+                        }
+                      angle_cur %= 360;
+                    }
+		}
+              else
+                {
+		  if (debug_turn)
+		    gameLocal.Printf ("angle_inc <= 0\n");
+
+                  if (angle_cur < angle_final)
+                    {
+		      if (debug_turn)
+			gameLocal.Printf ("1. angle_inc < angle_final\n");
+
+                      angle_cur += angle_inc;
+		      if (angle_cur < 0)
+			{
+			  angle_cur += 360;
+			  angle_cur %= 360;
+			  if (angle_cur <= angle_final)
+			    {
+			      /* far enough.  */
+			      angle_cur = angle_final;
+			      angle_active = false;
+			    }
+			}
+                    }
+                  else
+                    {
+		      if (debug_turn)
+			gameLocal.Printf ("2. angle_inc >= angle_final\n");
+
+                      angle_cur += angle_inc;
+                      if (angle_cur <= angle_final)
+                        {
+                          /* far enough.  */
+                          angle_cur = angle_final;
+                          angle_active = false;
+                        }
+		      else
+			{
+			  angle_cur += 360;
+			  angle_cur %= 360;
+			}
+                    }
+		}
 	    }
 	}
+      else
+	if (debug_turn)
+	  gameLocal.Printf ("turn is not active\n");
+
+      if (debug_turn)
+	gameLocal.Printf ("doTurn (%d)\n", angle_cur);
 
       p->doTurn (angle_cur);
-      if (debug_turn)
-	gameLocal.Printf ("doTurn (angle_cur = %d)\n", angle_cur);
       angle_active = (angle_cur != angle_final);  // turn this off when we reached final orientation
     }
 }

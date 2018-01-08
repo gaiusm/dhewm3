@@ -31,7 +31,8 @@ from botutils import *
 from socket import *
 
 superServer = 7000
-debug_protocol = True
+debug_protocol = False
+debug_turn = True
 
 
 #
@@ -68,29 +69,29 @@ class basic:
             print superServer, p
             if p == superServer:
                 print "successfully double checked the superserver port"
-                self.s.close ()             # all done with that connection,
-                # we reconnect and go for the real bot request.
+                self.s.close ()             #  all done with that connection,
+                #  we reconnect and go for the real bot request.
                 self.s = self.connectSS (server)
                 #
                 #  all good, we now ask it about the botserver portno
                 #
                 print "sending botname request to superserver", name
-                self.s.send (name + '\n')   # specific botserver requested
+                self.s.send (name + '\n')   #  specific botserver requested
                 print "waiting for port reply from superserver", name
                 p = int (self.getPort ())
                 print "about to close this socket", name
-                self.s.close ()             # all done with the superServer
+                self.s.close ()             #  all done with the superServer
                 if p != 0:
                     print "found botname", name, "port is", p
-                    break                   # found the portno
+                    break                   #  found the portno
                 #
                 #  at this point the bot server is not ready
                 #  so we need to wait and try again.
                 #
                 time.sleep (1)
             else:
-                self.s.close ()             # all done with this server
-                superServer = p             # superServer has moved portno
+                self.s.close ()             #  all done with this server
+                superServer = p             #  superServer has moved portno
                 print "superserver has changed port to", p
         self.s = self.connectBot (server, p, name)
         self._maxX = None
@@ -177,10 +178,8 @@ class basic:
     #
 
     def line2vec (self, l):
-        print "line2vec", l
         v = []
         for w in l.split ():
-            print w
             v += [int (float (w))]
         return v
 
@@ -206,6 +205,23 @@ class basic:
 
     def me (self):
         self.s.send ("self\n")
+        return int (self.getLine ())
+
+
+    #
+    #  health - return the bots health
+    #
+
+    def health (self):
+        self.s.send ("health\n")
+        return int (self.getLine ())
+
+    #
+    #  angle - return the bots Yaw.
+    #
+
+    def angle (self):
+        self.s.send ("angle\n")
         return int (self.getLine ())
 
 
@@ -387,7 +403,7 @@ class basic:
 
     #
     #  reloadWeapon - reload the current weapon
-    #                  It returns the amount of ammo left.
+    #                 It returns the amount of ammo left.
     #
 
     def reloadWeapon (self):
@@ -398,6 +414,28 @@ class basic:
         if debug_protocol:
             print "doom returned", l
         return int (l)
+
+    #
+    #  changeWeapon - change to weapon, n.
+    #                 Attempt to change to weapon, n.
+    #                 n is a number 0..maxweapon
+    #                 The return value is the amount
+    #                 of ammo left for the weapon
+    #                 >= 0 if the weapon exists
+    #                 or -1 if the weapon is not in
+    #                 the bots inventory.
+    #
+
+    def changeWeapon (self, n):
+        if debug_protocol:
+            print "requesting change weapon to", n
+        s = "change_weapon %d\n" % (n)
+        self.s.send (s)
+        l = self.getLine ()
+        if debug_protocol:
+            print "doom returned", l
+        return int (l)
+
 
     #
     #  ammo - returns the amount of ammo for the current weapon.
@@ -431,14 +469,14 @@ class basic:
     #
 
     def turn (self, angle, angle_vel):
-        if debug_protocol:
+        if debug_turn:
             print "requesting turn ", angle, angle_vel
         l = "turn %d %d\n" % (angle, angle_vel)
         self.s.send (l)
         l = self.getLine ()
-        if debug_protocol:
-            print "doom returned", l
-        return l == 'true'
+        if debug_turn:
+            print "old angle of bot", l
+        return int (l)
 
     #
     #  getPenMapName - return the name of the current pen map.

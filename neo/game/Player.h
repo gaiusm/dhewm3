@@ -249,9 +249,9 @@ class selectInfo
 
   unsigned int ammo;   // python bot can count/limit the amount of ammo fired.
   unsigned int run;    // python bot can count/limit the steps taken.
-  unsigned int angle_final;  // the final angle desired
-  unsigned int angle_inc;    // the angle increment used every time slice
-  unsigned int angle_cur;    // the current angle of the bot.
+  int angle_final;  // the final angle desired
+  int angle_inc;    // the angle increment used every time slice
+  int angle_cur;    // the current angle of the bot.
   bool reload_finished;  // has the reload finished yet?
 };
 
@@ -589,8 +589,10 @@ public:
 	int Fire (bool b);   // gaius
 	int Ammo (void);  // gaius
         int Turn (int angle, int angle_vel);   // gaius
+	int GetYaw (void);  // gaius
 	void doTurn (int angle);	// gaius
 	void select (int bitmask);  // gaius
+	int ChangeWeapon (int new_weapon); // gaius
 
 private:
 	jointHandle_t			hipJoint;

@@ -26,14 +26,36 @@ import time
 import socket
 import sys
 import os
+import random
 
 from botaa import aas
 from botbasic import basic
 from botcache import cache
 from chvec import *
-from math import atan2
+from math import atan2, sqrt
+
 
 pen2doom3units = 48   # inches per ascii square
+angle_offset = 0
+
+#
+#  sqr - return the square of x.
+#
+
+def sqr (x):
+    return x * x
+
+
+#
+#  incAngle - increments, angle, by, inc, ensuring it stays within 0..359 degrees.
+#
+
+def incAngle (angle, inc):
+    angle += inc
+    while angle < 0:
+        angle += 360
+    angle %= 360
+    return angle
 
 
 class bot:
@@ -90,7 +112,8 @@ class bot:
     #
 
     def getpos (self, obj):
-        return self._cache.getpos (obj)
+        p = self._cache.getpos (obj)
+        return [p[0], p[1], p[2]]
 
     #
     #  forward - step forward at velocity, vel, for dist, units.
@@ -121,11 +144,19 @@ class bot:
         return self._cache.right (vel, dist)
 
     #
-    #  turn - turn to face, angle.
+    #  atod3 - convert a penguin tower map angle into the doom3 angle.
+    #
+
+    def atod3 (self, angle):
+        return incAngle (angle, angle_offset)
+
+    #
+    #  turn - turn to face, angle.  The angle is a penguin tower angle.
+    #         0 up, 180 down, 90 left, 270 right.
     #
 
     def turn (self, angle, angle_vel):
-        return self._cache.turn (angle, angle_vel)
+        return self._cache.turn (self.atod3 (angle), angle_vel)
 
     #
     #  select - wait for any desired event:  legal events are
@@ -145,13 +176,14 @@ class bot:
         return self._cache.sync ()
 
     #
-    #  angle - return the angle the object, d, is facing.
-    #          d is only sensibly used with monsters and players.
-    #  (not implemented yet)
+    #  angle - return the angle the bot is facing.
+    #          The angle returned is a penguin tower angle.
+    #          0 up, 180 down, 90 left, 270 right.
+    #          Equivalent to the doom3 Yaw.
     #
 
-    def angle (self, d):
-        return 0
+    def angle (self):
+        return self._cache.angle ()
 
     #
     #  calcnav - calculate the navigation route between us and object, d.
@@ -164,36 +196,60 @@ class bot:
     #
 
     def calcnav (self, d):
+        self.reset ()
         src = self.d2pv (self.getpos (self.me ()))
         dest = self.d2pv (self.getpos (d))
         return self.p2d (self._aas.calcnav (src, dest))
 
 
     #
-    #  turnface - turn and face vector.
+    #  calcAngle - calculate the angle to face vector, v.
     #
 
-    def turnface (self, v, vel):
-        print "v =", v,
+    def _calcAngle (self, v):
         if v[0] == 0:
-            print "not using atan2"
+            print "short cut, not using atan2 north/south",
             if v[1] > 0:
+                angle = 270
+            else:
+                angle = 90
+        elif v[1] == 0:
+            print "short cut, not using atan2 left/right",
+            if v[0] > 0:
                 angle = 180
             else:
                 angle = 0
-        elif v[1] == 0:
-            print "not using atan2"
-            if v[0] > 0:
-                angle = 90
-            else:
-                angle = 270
         else:
-            print "using atan2"
-            angle = int (atan2 (v[0], v[1]) * 180.0)   # radians into degrees
-            angle += 360
-            angle %= 360
+            print "using atan2",
+            angle = incAngle (int (atan2 (v[1], v[0]) * 180.0 / 3.1415927), 180)   # radians into degrees
+
         print "angle =", angle
-        self.turn (angle, vel)
+        return angle
+
+    #
+    #  turnface - turn and face vector.
+    #
+
+    def turnface (self, v, vel = None):
+        print "v =", v,
+        angle = self._calcAngle (v)
+        if vel == None:
+            #
+            #  we work out the quickest anti/clock turn to achieve correct orientation.
+            #
+            old = self.angle ()
+            if old < angle:
+                if abs (old + 360 - angle) < abs (angle - old):
+                    self.turn (angle, -1)  # quicker to turn using -1
+                else:
+                    self.turn (angle, 1)  # quicker to turn using 1
+            else:
+                if abs (angle + 360 - old) < abs (angle - old):
+                    self.turn (angle, 1)  # quicker to turn using 1
+                else:
+                    self.turn (angle, -1)  # quicker to turn using -1
+        else:
+            self.turn (angle, vel)
 
 
     #
@@ -204,8 +260,8 @@ class bot:
     def d2pv (self, v):
         r = []
         if len (v) > 1:
-            r += [v[1]/(-pen2doom3units)+1]   # x and y are switched between maps
-            r += [v[0]/(-pen2doom3units)+1]
+            r += [v[0]/(-pen2doom3units)]
+            r += [v[1]/(-pen2doom3units)]
         return r
 
     #
@@ -214,6 +270,8 @@ class bot:
     #
 
     def p2d (self, u):
+        if u is None:
+            return None
         return pen2doom3units * u
 
     #
@@ -221,14 +279,69 @@ class bot:
     #            along the navigation route calculated in calcnav.
     #
 
-    def journey (self, vel, dist, dest):
-        dest = self.d2pv (dest)
-        print "aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ()))
-        while (dist > 0) and (vel != 0) and (not equVec (self._aas.getHop (0), dest)):
-            dist = self.ssNav (vel, dist, self._aas.getHop (0))
-            print "journey: reached coord", self._aas.getHop (0)
-            self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
+    def journey (self, vel, dist, obj):
         self.reset ()
+        print "journey along route", self._aas._route
+        dest = self.d2pv (self.getpos (obj))
+        print "aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest
+        #
+        #  keep stepping along route as long as the object does not move and we have dist units to move along
+        #
+        while (dist > 0) and (vel != 0) and equVec (dest, self.d2pv (self.getpos (obj))) and (not equVec (self._aas.getHop (0), dest)):
+            v = subVec (self.d2pv (self.getpos (self.me ())), self._aas.getHop (0))
+            hopPos = self._aas.getHop (0)
+            hops = 1
+            while (hops < self._aas.noOfHops ()) and equVec (subVec (hopPos, self._aas.getHop (hops)), v):
+                hopPos = self._aas.getHop (hops)
+                hops += 1
+            if hops == 1:
+                print "single hop nav"
+                dist = self.ssNav (vel, dist, self._aas.getHop (0))
+                print "old journey route", self._aas._route
+                print "journey: reached coord", self._aas.getHop (0)
+                self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
+                print "new journey route", self._aas._route
+            else:
+                print "bulk hop nav", hops
+                dist = self.ssBulkNav (vel, self._aas.getHop (hops-1), hops)
+                if dist > 0:
+                    self.reset ()
+                    mypos = self.d2pv (self.getpos (self.me ()))
+                    for h in range (hops):
+                        if equVec (mypos, self._aas.getHop (h)):
+                            for i in range (h):
+                                self._aas.removeHop (0, self._aas.getHop (0))
+                            break
+                    else:
+                        print "oops fallen off the route, aborting and will try again"
+                        return
+                    hops = 0
+                    print "new journey route", self._aas._route
+        if dist == 0:
+            print "journey algorithm ran out of distance"
+        elif equVec (dest, self.d2pv (self.getpos (obj))):
+            print "journey algorithm reached the goal object"
+        elif equVec (self._aas.getHop (0), dest):
+            print "journey algorithm reached intemediate hop"
+        else:
+            print "journey algorithm failed"
+        self.reset ()
+
+
+    def calcMidDist (dest):
+        botpos = self.getpos (self.me ())  # doom3 units
+
+
+    def runArc (self, angle, dist):
+        self.forward (100, dist)
+        self.turn (angle, 1)
+        self.select (["move"])
+        self.select (["turn"])
+
+
+    def midPen2Doom (self, p):
+        return [p[0] * pen2doom3units + pen2doom3units/2,
+                p[1] * pen2doom3units + pen2doom3units/2]
 
 
     #
@@ -237,19 +350,85 @@ class bot:
     #
 
     def ssNav (self, vel, dist, h):
-        p = self.d2pv (self.getpos (self.me ()))
-        while (dist > 0) and (not equVec (h, p)):
-            self.turnface (subVec (h, p), vel)
-            self.sync ()
-            if dist > self.p2d (1):
-                d = self.p2d (1)
+        self.reset ()
+        initpos = self.d2pv (self.getpos (self.me ()))
+        count = 0
+        mypos = self.d2pv (self.getpos (self.me ()))
+        while (dist > 0) and (not equVec (h, mypos)):
+            print "bot at", mypos, "trying to reach", h
+            mydoom = self.twoDdoom (self.getpos (self.me ()))
+            hdoom = self.midPen2Doom (h)
+            self.turnface (subVec (hdoom, mydoom))
+            self.select (["turn"])
+            print "completed turn along", subVec (h, mypos)
+            if dist > self.p2d (1)/2:
+                d = self.p2d (1)/2
             else:
                 d = dist
             self.forward (vel, d)
-            self.sync ()
+            self.select (["move"])
+            print "completed forward", d, "units"
+            # time.sleep (2)
+            self.reset ()
             dist -= d
-            p = self.d2pv (self.getpos (self.me ()))
+            mypos = self.d2pv (self.getpos (self.me ()))
+            if equVec (initpos, mypos):
+                print "not moved substantially"
+                count += 1
+                if count == 4:
+                    print "stuck, try again"
+                    self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
+                    return dist
+
+        if equVec (h, mypos):
+            print "bot has reached", h, "!!"
         return dist
+
+
+    #
+    #  ssBulkNav - multiple square navigate, turn and move to position, h.
+    #
+
+    def ssBulkNav (self, vel, h, noHops):
+        self.reset ()
+        initpos = self.d2pv (self.getpos (self.me ()))
+        count = 0
+        mypos = self.d2pv (self.getpos (self.me ()))
+        d = 0
+        dist = 0
+        print "bot at", mypos, "trying to reach", h
+        mydoom = self.twoDdoom (self.getpos (self.me ()))
+        hdoom = self.midPen2Doom (h)
+        self.turnface (subVec (hdoom, mydoom))
+        self.select (["turn"])
+        print "completed turn along", subVec (h, mypos)
+        d = self.p2d (noHops)/2
+        # d = sqrt (sqr (mydoom[0] - hdoom[0]) + sqr (mydoom[1] - hdoom[1]))
+        self.forward (vel, d)
+        self.select (["move"])
+        print "completed forward", d, "units"
+        self.reset ()
+        mypos = self.d2pv (self.getpos (self.me ()))
+        if equVec (initpos, mypos):
+            print "not moved substantially"
+            count += 1
+            if count == 4:
+                print "stuck, try again"
+                self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
+                return 0
+        dist += d
+        if equVec (h, mypos):
+            print "bot has reached", h, "!!"
+        return dist
+
+    #
+    #
+    #
+
+    def twoDdoom (self, v):
+        if len (v) > 2:
+            v = v[:2]
+        return negVec (v)
 
 
     #
@@ -259,9 +438,9 @@ class bot:
 
     def face (self, i):
         self.reset ()
-        p = self.d2pv (self.getpos (self.me ()))
-        h = self.d2pv (self.getpos (i))
-        self.turnface (subVec (h, p), 1)
+        p = self.twoDdoom (self.getpos (self.me ()))
+        h = self.twoDdoom (self.getpos (i))
+        self.turnface (subVec (h, p))
         self.sync ()
         if equVec (p, h):
             self.aim (i)

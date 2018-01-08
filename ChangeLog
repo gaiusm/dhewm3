@@ -1,3 +1,22 @@
+2018-01-08      Gaius Mulley <gaius@gnu.org>
+
+	* neo/game/Player.cpp:  enable turn debugging.
+          (Turn) check to see the angle_vel is non zero.
+          New method (GetYaw).  New method (ChangeWeapon).
+          (set_angle) reimplemented.
+	* neo/game/Player.h:  change definition of angle
+          fields angle_final, angle_inc, angle_cur to int.
+          New method (GetYaw).  New method (ChangeWeapon).
+	* neo/game/ai/pybot.cpp:  New method (weapon).
+          New method (health).  New method (angle).
+          (interpretRemoteProcedureCall) call rpcHealth
+          call rpcChangeWeapon.  (rpcHealth)  New method.
+          (rpcAngle)  New method.  (rpcChangeWeapon)
+          New method.
+	* neo/game/ai/pybot.h:  (rpcHealth)  New declaration.
+          (rpcAngle)  New declaration.  (rpcChangeWeapon)
+	  New declaration.
+
 2017-10-29      Gaius Mulley <gaius@gnu.org>
 
 	* neo/d3xp/Game_local.h:  New method (FindClassName).

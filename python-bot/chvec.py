@@ -48,6 +48,17 @@ def subVec (a, b):
 
 
 #
+#  negVec - returns (-a)
+#
+
+def negVec (a):
+    result = []
+    for p in a:
+        result += [-p]
+    return result
+
+
+#
 #  minVec - given two lists or vectors, a, b.
 #           Return a new list containing the smallest
 #           element in either indice or a and b.

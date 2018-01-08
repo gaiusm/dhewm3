@@ -235,6 +235,18 @@ class cache:
         return self._basic.aim (i)
 
     #
+    #  angle - return the angle the bot is facing.
+    #          The angle returned is a penguin tower angle.
+    #          0 up, 180 down, 90 left, 270 right.
+    #          Equivalent to the doom3 Yaw.
+    #
+
+    def angle (self):
+        if not self._dict.has_key ('angle'):
+            self._dict['angle'] = self._basic.angle ()
+        return self._dict['angle']
+
+    #
     #  turn - turn to face, angle.
     #
 

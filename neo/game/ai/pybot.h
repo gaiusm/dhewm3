@@ -104,6 +104,7 @@ class pyBotClass
   void rpcSuper (void);
   void rpcGetPos (char *data);
   void rpcSelf (void);
+  void rpcHealth (void);
   void rpcMaxObj (void);
   void rpcStep (char *data);
   void rpcRight (char *data);
@@ -115,11 +116,13 @@ class pyBotClass
   void rpcReloadWeapon (void);
   void rpcAmmo (void);
   void rpcTurn (char *data);
+  void rpcAngle (void);
   void rpcPenMap (void);
   void rpcSelect (char *data);
   void rpcGetClassNameEntity (char *data);
   void rpcGetPairEntity (char *arg);
   void rpcGetEntityPos (char *data);
+  void rpcChangeWeapon (char *data);
   int myid;
   char *name;
   int portNo;
