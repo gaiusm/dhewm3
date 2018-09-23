@@ -1952,7 +1952,8 @@ void idGameLocal::SpawnPlayer( int clientNum, int pythonEntNum, bool pythonBot )
 	args.SetBool ("pythonBot", pythonBot);  // gaius
 	if (pythonBot)
 	  {
-	    args.Set ("python_name", va ("python_doommarine_%d", clientNum));
+	    // args.Set ("python_name", va ("python_doommarine_%d", clientNum));
+	    args.Set ("python_name", "python_doommarine");
 	    args.SetInt ("python_entnum", pythonEntNum);
 	  }
 	else

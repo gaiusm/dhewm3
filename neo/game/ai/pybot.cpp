@@ -68,8 +68,9 @@ const bool protocol_debugging = true;
 #define S_(x) S(x)
 #define S__LINE__ S_(__LINE__)
 # define pybot_debugf(X)  do { debugf (__FILE__ ":" S__LINE__ ":" ":" X) ; } while (0)
+#define MAX_ID_STR  20
 
-int define (const char *name, idAI *idBot);
+int define (const char *name, idAI *idBot, int instance);
 int checkId (int id);
 void initialise_dictionary (void);
 
@@ -116,8 +117,8 @@ class item
   item (void);
   ~item (void);
   item (const item &from);
-  item (const char *n, idAI *idBot);
-  item (const char *n, idPlayer *ip);
+  item (const char *n, idAI *idBot, int id);
+  item (const char *n, idPlayer *ip, int id);
   idVec3 getPos (void);
   bool stepDirection (float dir);
   int stepForward (int vel, int dist);
@@ -134,18 +135,22 @@ class item
   int turn (int angle, int angle_vel);
   idEntity *getIdEntity (void);
   void select (int mask);
+  int getInstanceId (void);
+  const char *getName (void);
 
  private:
   enum {item_none, item_monster, item_player, item_ammo} kind;
   idAI *idai;
   idPlayer *idplayer;
   char name[MAX_NAME];
+  int instanceId;
 };
 
 
 item::item (void)
   : kind (item_none), idai (NULL)
 {
+  instanceId = -1;
 }
 
 
@@ -160,21 +165,40 @@ item::item (const item &from)
 }
 
 
-item::item (const char *n, idAI *idBot)
+/*
+ *  n is the name.
+ *  idBot is the idtech4 bot object.
+ *  id is the python instance number.
+ */
+
+item::item (const char *n, idAI *idBot, int id)
 {
   kind = item_monster;
   strcpy (name, n);
   idai = idBot;
+  instanceId = id;
 }
 
 
-item::item (const char *n, idPlayer *ip)
+item::item (const char *n, idPlayer *ip, int id)
 {
   kind = item_player;
   strcpy (name, n);
   idplayer = ip;
+  instanceId = id;
 }
 
+
+int item::getInstanceId (void)
+{
+  return instanceId;
+}
+
+
+const char *item::getName (void)
+{
+  return &name[0];
+}
 
 /*
  *  getPos - return the position of the item.
@@ -469,8 +493,8 @@ class dict
   ~dict (void);
   dict (const dict &from);
 
-  int add (const char *name, idAI *idBot);
-  int add (const char *name, idPlayer *ip);
+  int add (const char *name, idAI *idBot, int instance);
+  int add (const char *name, idPlayer *ip, int instance);
   int checkId (int id);
   idVec3 getPos (int id);
   bool stepDirection (int id, float dir);
@@ -488,6 +512,7 @@ class dict
   void select (int id, int mask);
   int getHigh (void);
   int weapon (int id, int new_weapon);
+  int determineInstanceId (const char *name);
  private:
   item *entry[MAX_ENTRY];
   int high;
@@ -511,12 +536,27 @@ dict::dict (const dict &from)
 }
 
 
+int dict::determineInstanceId (const char *name)
+{
+  int instanceId = 0;
+  int i = 0;
+
+  while (i < high)
+    {
+      if ((entry[i] != NULL) && (strcmp (entry[i]->getName (), name) == 0))
+	instanceId++;
+      i++;
+    }
+  return instanceId;
+}
+
+
 /*
  *  add - add a new monster entry into our dictionary of items.
- *        Return the id.
+ *        Return the entry index (rid) used to contain the new item.
  */
 
-int dict::add (const char *name, idAI *idBot)
+int dict::add (const char *name, idAI *idBot, int instance)
 {
   if (high == MAX_ENTRY)
     ERROR ("increase MAX_ENTRY");
@@ -524,7 +564,8 @@ int dict::add (const char *name, idAI *idBot)
    *  id of zero is not used.
    */
   int lastused = high;
-  entry[lastused] = new item (name, idBot);
+  // int instance = determineInstanceId (name);
+  entry[lastused] = new item (name, idBot, instance);
   high++;
   return lastused;
 }
@@ -532,10 +573,10 @@ int dict::add (const char *name, idAI *idBot)
 
 /*
  *  add - add a new monster entry into our dictionary of items.
- *        Return the id.
+ *        Return the entry index (rid) used to contain the new item.
  */
 
-int dict::add (const char *name, idPlayer *ip)
+int dict::add (const char *name, idPlayer *ip, int instance)
 {
   if (high == MAX_ENTRY)
     ERROR ("increase MAX_ENTRY");
@@ -543,7 +584,8 @@ int dict::add (const char *name, idPlayer *ip)
    *  id of zero is not used.
    */
   int lastused = high;
-  entry[lastused] = new item (name, ip);
+  // int instance = determineInstanceId (name);
+  entry[lastused] = new item (name, ip, instance);
   high++;
   return lastused;
 }
@@ -725,17 +767,17 @@ int checkId (int id)
 }
 
 
-int define (const char *name, idAI *idBot)
+int define (const char *name, idAI *idBot, int instance)
 {
   initialise_dictionary ();
-  return dictionary->add (name, idBot);
+  return dictionary->add (name, idBot, instance);
 }
 
 
-int define (const char *name, idPlayer *ip)
+int define (const char *name, idPlayer *ip, int instance)
 {
   initialise_dictionary ();
-  return dictionary->add (name, ip);
+  return dictionary->add (name, ip, instance);
 }
 
 
@@ -746,10 +788,11 @@ public:
   ~pyList (void);
   pyList (const pyList &from);
 
-  void include (pyBotClass *p);
-  pyBotClass *remove (const char *name);
+  void include (pyBotClass *p, int id);
+  pyBotClass *remove (const char *name, int id);
 private:
   pyBotClass *content[MAX_PYLIST];
+  int         ids[MAX_PYLIST];
   int high;
   int used;
 };
@@ -769,14 +812,14 @@ pyList::pyList (const pyList &from)
 }
 
 
-void pyList::include (pyBotClass *p)
+void pyList::include (pyBotClass *p, int id)
 {
   /*
    *  have we already stored p?  if so we return.
    */
   for (int i = 0; i < high; i++)
     {
-      if (content[i] == p)
+      if ((content[i] == p) && (ids[i] == id))
 	return;   /* already stored, we are done.  */
     }
   if (used == MAX_PYLIST)
@@ -789,6 +832,7 @@ void pyList::include (pyBotClass *p)
       if (content[i] == NULL)
 	{
 	  content[i] = p;
+	  ids[i] = id;
 	  used++;
 	  return;
 	}
@@ -797,6 +841,7 @@ void pyList::include (pyBotClass *p)
    *  we have to use a new slot.
    */
   content[high] = p;
+  ids[high] = id;
   high++;
   used++;
 }
@@ -807,17 +852,25 @@ void pyList::include (pyBotClass *p)
  *           NULL is returned if unsuccessful.
  */
 
-pyBotClass *pyList::remove (const char *name)
+pyBotClass *pyList::remove (const char *name, int id)
 {
   for (int i = 0; i < high; i++)
     {
-      gameLocal.Printf ("buffer [%d] = %s    looking for %s\n", i, content[i]->getName (), name);
-      if ((content[i] != NULL) && (strcmp (name, content[i]->getName ()) == 0))
+      gameLocal.Printf ("looking for name = %s and id = %d\n", name, id);
+      if (content[i] != NULL)
+	{
+	  gameLocal.Printf ("  slot %i has name = %s and id = %d\n",
+			    i, content[i]->getName (), ids[i]);
+	}
+      if ((content[i] != NULL)
+	  && (strcmp (name, content[i]->getName ()) == 0)
+	  && (ids[i] == id))
 	{
 	  pyBotClass *p = content[i];
 	  content[i] = NULL;
+	  ids[i] = -1;
 	  used--;
-	  gameLocal.Printf ("buffer [%d] = %s found\n", i, p->getName ());
+	  gameLocal.Printf ("buffer [%d] = %s %d found\n", i, p->getName (), id);
 	  return p;
 	}
     }
@@ -978,8 +1031,10 @@ bool pyBufferClass::pyflushed (int fd, bool canBlock)
 /* ok */
 
 pyServerClass::pyServerClass (void)
-  : enabled (false), state (toInit), connectedBot (NULL)
+  : enabled (false), state (toInit)
 {
+  connectedBot = NULL;
+  connectFd = -1;
 }
 
 
@@ -1102,6 +1157,7 @@ int pyServerClass::tryActivate (int desiredPort)
 void pyServerClass::acceptServer (bool canBlock)
 {
   socklen_t n = sizeof (isa);
+  assert (connectFd == -1);
   connectFd = accept (socketFd, (struct sockaddr *)&isa, &n);
   if (connectFd < 0)
     ERROR ("accept");
@@ -1136,12 +1192,23 @@ void pyServerClass::readServer (bool canBlock)
 	   *  has been allocated.
 	   */
 	  int portno;
+	  int botInstanceId = -1;
+	  char *botname = strdup (data);
+	  char *idstr = index (botname, ' ');
 
+	  if ((idstr != NULL) && ((*idstr) != (char)0))
+	    botInstanceId = atoi (idstr);
+
+	  if (botInstanceId == -1)
+	    gameLocal.Printf ("incorrect bot id, bot name sent from python client %s has id of -1\n", data);
+	  *idstr = (char)0;
 	  connectedBot = new pyBotClass ();
-	  connectedBot->setName (strdup (data));
+	  connectedBot->setName (botname);
+	  connectedBot->setInstanceId (botInstanceId);
 	  connectedBot->initServer (0);  /* any available port is good.  */
 	  portno = connectedBot->getPortNo ();
-	  gameLocal.Printf ("bot has been allocated port %d\n", portno);
+	  gameLocal.Printf ("bot %s instance %d has been allocated port %d\n",
+			    idstr, botInstanceId, portno);
 	  idStr::snPrintf (portValue, sizeof (portValue), "%d\n", portno);
 	  buffer.pyput (portValue);
 	  state = toWriteConnected;
@@ -1171,7 +1238,7 @@ void pyServerClass::writeConnectedServer (bool canBlock)
     {
       state = toClose;
       connectedBot->setConnected ();
-      pending.include (connectedBot);
+      pending.include (connectedBot, connectedBot->getInstanceId ());
       connectedBot = NULL;
       gameLocal.Printf ("bot port has been flushed to the script\n");
     }
@@ -1186,6 +1253,7 @@ void pyServerClass::closeServer (bool canBlock)
 {
   close (connectFd);
   state = toAccept;
+  connectFd = -1;
 }
 
 
@@ -1213,19 +1281,21 @@ void developerHelp (const char *name)
  *  forkscript - if in developer mode call developerHelp otherwise fork and exec a python script.
  */
 
-void forkScript (const char *name)
+void forkScript (const char *name, int id)
 {
   if (getenv ("DEBUG_PYBOT") == NULL)
     {
       char buffer[PATH_MAX];
+      char idtext[MAX_ID_STR];
 
       idStr::snPrintf (buffer, sizeof (buffer), "%s/%s/%s.py", getHome (), getDir (), name);
-      gameLocal.Printf ("execl /usr/bin/python %s\n", buffer);
+      idStr::snPrintf (idtext, sizeof (idtext), "%d", id);
+      gameLocal.Printf ("execl /usr/bin/python %s %d\n", buffer, id);
       int pid = fork ();
       if (pid == 0)
 	/* child process.  */
 	{
-	  int r = execl ("/usr/bin/python", "python", buffer, (char *)NULL);
+	  int r = execl ("/usr/bin/python", "python", buffer, idtext, (char *)NULL);
 
 	  if (r != 0)
 	    perror ("execl");
@@ -1246,18 +1316,18 @@ static void mystop (void) {}
  *  populateDictionary - adds idBot into the python bot universe of objects.
  */
 
-void populateDictionary (const char *name, idAI *idBot)
+void populateDictionary (const char *name, idAI *idBot, int instance)
 {
-  define (name, idBot);
+  define (name, idBot, instance);
 }
 
 /*
  *  populateDictionary - adds idBot into the python bot universe of objects.
  */
 
-void populateDictionary (const char *name, idPlayer *ip)
+void populateDictionary (const char *name, idPlayer *ip, int instance)
 {
-  define (name, ip);
+  define (name, ip, instance);
 }
 
 
@@ -1266,23 +1336,25 @@ void populateDictionary (const char *name, idPlayer *ip)
  *                   We create a server and tell the super server
  *                   which port we are using.
  *                   This bot (player/monster) is completely controlled via Python.
+ *                   name is the script to be run and the, instance.
  */
 
-pyBotClass *doRegisterName (const char *name, int id)
+pyBotClass *doRegisterName (const char *name, int instance, int rid)
 {
   pyBotClass *b;
 
   gameLocal.Printf ("real registerName reached!\n");
-  forkScript (name);
-  gameLocal.Printf ("registerName is wanting to connect with a script called '%s'\n", name);
+  forkScript (name, instance);
+  gameLocal.Printf ("registerName is wanting to connect with a script called '%s' instance %d\n", name, instance);
   do {
-    b = pending.remove (name);
+    b = pending.remove (name, instance);
     if (b == NULL)
       poll (true);
   } while (b == NULL);
-  active.include (b);
-  b->setId (id);
-  gameLocal.Printf ("registerName completing after successfully connecting with the script '%s'\n", name);
+  active.include (b, instance);
+  b->setInstanceId (instance);
+  b->setRpcId (rid);
+  gameLocal.Printf ("registerName completing after successfully connecting with the script '%s' instance %d\n", name, instance);
   return b;
 }
 
@@ -1292,9 +1364,9 @@ pyBotClass *doRegisterName (const char *name, int id)
  *                 We create a server and tell the super server which port we are using.
  */
 
-pyBotClass *registerName (const char *name, idAI *idBot)
+pyBotClass *registerName (const char *name, idAI *idBot, int instance)
 {
-  return doRegisterName (name, define (name, idBot));
+  return doRegisterName (name, instance, define (name, idBot, instance));
 }
 
 
@@ -1306,14 +1378,14 @@ pyBotClass *registerName (const char *name, idAI *idBot)
  *                 and no user input is used.
  */
 
-pyBotClass *registerName (const char *name, idPlayer *ip)
+pyBotClass *registerName (const char *name, idPlayer *ip, int instance)
 {
-  return doRegisterName (name, define (name, ip));
+  return doRegisterName (name, instance, define (name, ip, instance));
 }
 
 
 pyBotClass::pyBotClass ()
-  : myid (0), name (NULL), portNo (0), enabled (false), state (toInit),
+  : instanceId (-1), rpcId (0), name (NULL), portNo (0), enabled (false), state (toInit),
     socketFd (0), connectFd (0), connected (false)
 {
 }
@@ -1454,14 +1526,40 @@ void pyBotClass::readServer (bool canBlock)
 
 
 /*
- *  setId - assign, myid, to, id.
+ *  setRpcId - assign, rpcId, to, id.
  */
 
-void pyBotClass::setId (int id)
+void pyBotClass::setRpcId (int id)
 {
-  myid = id;
+  rpcId = id;
 }
 
+/*
+ *  getRpcId - return bots python id.
+ */
+
+int pyBotClass::getRpcId (void)
+{
+  return rpcId;
+}
+
+/*
+ *  setInstanceId - assign, instanceId, to, id.
+ */
+
+void pyBotClass::setInstanceId (int id)
+{
+  instanceId = id;
+}
+
+/*
+ *  getInstanceId - return bots python id.
+ */
+
+int pyBotClass::getInstanceId (void)
+{
+  return instanceId;
+}
 
 /*
  *  interpretRemoteProcedureCall - a switch statement of all rpc commands.
@@ -1579,7 +1677,7 @@ void pyBotClass::rpcSelf (void)
 
   if (protocol_debugging)
     gameLocal.Printf ("rpcSelf called by python\n");
-  idStr::snPrintf (buf, sizeof (buf), "%d\n", myid);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", rpcId);
   if (protocol_debugging)
     gameLocal.Printf ("rpcSelf responding with: %s\n", buf);
   buffer.pyput (buf);
@@ -1597,7 +1695,7 @@ void pyBotClass::rpcHealth (void)
 
   if (protocol_debugging)
     gameLocal.Printf ("rpcHealth called by python\n");
-  idStr::snPrintf (buf, sizeof (buf), "%d\n", dictionary->health (myid));
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", dictionary->health (rpcId));
   if (protocol_debugging)
     gameLocal.Printf ("rpcHealth responding with: %s\n", buf);
   buffer.pyput (buf);
@@ -1634,10 +1732,10 @@ void pyBotClass::rpcStep (char *data)
   if (protocol_debugging)
     gameLocal.Printf ("rpcStep (%s) call by python\n", data);
 
-  if (myid > 0)
+  if (rpcId > 0)
     {
       float dir = atof (data);
-      done = dictionary->stepDirection (myid, dir);
+      done = dictionary->stepDirection (rpcId, dir);
     }
   if (done)
     strcpy (buf, "true\n");
@@ -1662,7 +1760,7 @@ void pyBotClass::rpcRight (char *data)
   if (protocol_debugging)
     gameLocal.Printf ("rpcRight (%s) call by python\n", data);
 
-  if (myid > 0)
+  if (rpcId > 0)
     {
       vel = atoi (data);
       char *p = index (data, ' ');
@@ -1670,7 +1768,7 @@ void pyBotClass::rpcRight (char *data)
 	dist = 0;
       else
 	dist = atoi (p);
-      dist = dictionary->stepRight (myid, vel, dist);
+      dist = dictionary->stepRight (rpcId, vel, dist);
     }
   idStr::snPrintf (buf, sizeof (buf), "%d\n", dist);
   buffer.pyput (buf);
@@ -1692,7 +1790,7 @@ void pyBotClass::rpcForward (char *data)
   if (protocol_debugging)
     gameLocal.Printf ("rpcForward (%s) call by python\n", data);
 
-  if (myid > 0)
+  if (rpcId > 0)
     {
       vel = atoi (data);
       char *p = index (data, ' ');
@@ -1700,7 +1798,7 @@ void pyBotClass::rpcForward (char *data)
 	dist = 0;
       else
 	dist = atoi (p);
-      dist = dictionary->stepForward (myid, vel, dist);
+      dist = dictionary->stepForward (rpcId, vel, dist);
     }
   idStr::snPrintf (buf, sizeof (buf), "%d\n", dist);
   buffer.pyput (buf);
@@ -1724,7 +1822,7 @@ void pyBotClass::rpcStepVec (char *data)
   if (protocol_debugging)
     gameLocal.Printf ("rpcStepVec (%s) call by python\n", data);
 
-  if (myid > 0)
+  if (rpcId > 0)
     {
       velforward = atoi (data);
       char *p = index (data, ' ');
@@ -1737,7 +1835,7 @@ void pyBotClass::rpcStepVec (char *data)
 	  if ((p == NULL) || ((*p) == '\0'))
 	    dist = atoi (p);
 	}
-      dist = dictionary->stepVec (myid, velforward, velright, dist);
+      dist = dictionary->stepVec (rpcId, velforward, velright, dist);
     }
   idStr::snPrintf (buf, sizeof (buf), "%d\n", dist);
   buffer.pyput (buf);
@@ -1759,7 +1857,7 @@ void pyBotClass::rpcAim (char *data)
     gameLocal.Printf ("rpcAim (%s) called by python\n", data);
 
   if (id > 0)
-    seen = dictionary->aim (myid, id);
+    seen = dictionary->aim (rpcId, id);
   if (seen)
     idStr::snPrintf (buf, sizeof (buf), "true\n");
   else
@@ -1780,7 +1878,7 @@ void pyBotClass::rpcAngle (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcAngle called by python\n");
 
-  int angle = dictionary->angle (myid);
+  int angle = dictionary->angle (rpcId);
   idStr::snPrintf (buf, sizeof (buf), "%d\n", angle);
   buffer.pyput (buf);
   state = toWrite;
@@ -1799,7 +1897,7 @@ void pyBotClass::rpcTurn (char *data)
   if (protocol_debugging)
     gameLocal.Printf ("rpcAngle (%s) called by python\n", data);
 
-  if (myid > 0)
+  if (rpcId > 0)
     {
       angle = atoi (data);
       char *p = index (data, ' ');
@@ -1807,7 +1905,7 @@ void pyBotClass::rpcTurn (char *data)
 	vel = 0;
       else
 	vel = atoi (p);
-      angle = dictionary->turn (myid, angle, vel);
+      angle = dictionary->turn (rpcId, angle, vel);
     }
 
   idStr::snPrintf (buf, sizeof (buf), "%d\n", angle);
@@ -1852,7 +1950,7 @@ void pyBotClass::rpcSelect (char *data)
   else
     mask = atoi (data);
 
-  if (mask == 0 || myid == 0)
+  if (mask == 0 || rpcId == 0)
     {
       char buf[1024];
 
@@ -1862,7 +1960,7 @@ void pyBotClass::rpcSelect (char *data)
     }
   else
     {
-      dictionary->select (myid, mask);
+      dictionary->select (rpcId, mask);
       state = toSelect;   /* move into the select state.  */
     }
 }
@@ -1880,8 +1978,8 @@ void pyBotClass::rpcStartFiring (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcStartFiring call python\n");
 
-  if (myid > 0)
-    ammo = dictionary->start_firing (myid);
+  if (rpcId > 0)
+    ammo = dictionary->start_firing (rpcId);
   else
     ammo = 0;
 
@@ -1903,8 +2001,8 @@ void pyBotClass::rpcStopFiring (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcStopFiring call by python\n");
 
-  if (myid > 0)
-    ammo = dictionary->stop_firing (myid);
+  if (rpcId > 0)
+    ammo = dictionary->stop_firing (rpcId);
   else
     ammo = 0;
 
@@ -1926,8 +2024,8 @@ void pyBotClass::rpcAmmo (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcAmmo call by python\n");
 
-  if (myid > 0)
-    ammo = dictionary->ammo (myid);
+  if (rpcId > 0)
+    ammo = dictionary->ammo (rpcId);
   else
     ammo = 0;
 
@@ -1950,8 +2048,8 @@ void pyBotClass::rpcReloadWeapon (void)
   if (protocol_debugging)
     gameLocal.Printf ("rpcReloadWeapon call by python\n");
 
-  if (myid > 0)
-    ammo = dictionary->ammo (myid);   // --fixme-- this should call something else
+  if (rpcId > 0)
+    ammo = dictionary->ammo (rpcId);   // --fixme-- this should call something else
   else
     ammo = 0;
 
@@ -2054,7 +2152,7 @@ void pyBotClass::rpcChangeWeapon (char *data)
   int ammo = -1;
 
   if (weapon >= 0)
-    ammo = dictionary->weapon (myid, weapon);
+    ammo = dictionary->weapon (rpcId, weapon);
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
   if (protocol_debugging)
     gameLocal.Printf ("rpcChangeWeapon responding with: %s\n", buf);

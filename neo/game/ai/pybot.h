@@ -91,7 +91,10 @@ class pyBotClass
   bool getConnected (void);
   void setConnected (void);
   int getPortNo (void);
-  void setId (int id);
+  int getRpcId (void);
+  void setRpcId (int);
+  int getInstanceId (void);
+  void setInstanceId (int);
  private:
   int tryActivate (int desiredPort);
   void acceptServer (bool canBlock);
@@ -123,7 +126,8 @@ class pyBotClass
   void rpcGetPairEntity (char *arg);
   void rpcGetEntityPos (char *data);
   void rpcChangeWeapon (char *data);
-  int myid;
+  int instanceId;  // python class, instance id
+  int rpcId;  // index into the rpc array
   char *name;
   int portNo;
   bool enabled;
@@ -174,7 +178,7 @@ class pyServerClass
  *                 and the doom3 AI is disabled.
  */
 
-EXTERN pyBotClass *registerName (const char *name, idAI *idBot);
+EXTERN pyBotClass *registerName (const char *name, idAI *idBot, int instance);
 
 
 /*
@@ -185,7 +189,7 @@ EXTERN pyBotClass *registerName (const char *name, idAI *idBot);
  *                 and no user input is used.
  */
 
-EXTERN pyBotClass *registerName (const char *name, idPlayer *idBot);
+EXTERN pyBotClass *registerName (const char *name, idPlayer *idBot, int instance);
 
 
 /*
@@ -193,13 +197,13 @@ EXTERN pyBotClass *registerName (const char *name, idPlayer *idBot);
  *                       This bot is controlled by the doom3 AI.
  */
 
-EXTERN void populateDictionary (const char *name, idAI *idBot);
+EXTERN void populateDictionary (const char *name, idAI *idBot, int instance);
 
 
 /*
  *  populateDictionary - adds player ip into the python bot universe of objects.
  */
 
-EXTERN void populateDictionary (const char *name, idPlayer *ip);
+EXTERN void populateDictionary (const char *name, idPlayer *ip, int instance);
 
 #endif

@@ -586,7 +586,7 @@ public:
 	int setVec (int velforward, int velright, int dist);  // gaius
 	bool Aim (idEntity *enemy);  // gaius
 	bool isVisible (idEntity *enemy);  // gaius
-	int Fire (bool b);   // gaius
+	int Fire (bool firing);   // gaius
 	int Ammo (void);  // gaius
         int Turn (int angle, int angle_vel);   // gaius
 	int GetYaw (void);  // gaius

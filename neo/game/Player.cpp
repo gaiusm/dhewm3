@@ -1145,17 +1145,18 @@ idPlayer::idPlayer() {
 
 void idPlayer::RegisterPython (bool pythonBot)
 {
+  int instance = spawnArgs.GetInt ("python_entnum");
   // gaius
   if (pythonBot)
     {
       const char *pythonName = spawnArgs.GetString ("python_name");
-      pythonBot = spawnArgs.GetBool ("pythonBot");
       gameLocal.Printf ("calling registerName (%s)\n", pythonName);
-      pybot = registerName (pythonName, this);
-      gameLocal.Printf ("python script has connected (%s)\n", pythonName);
+      pybot = registerName (pythonName, this, instance);
+      gameLocal.Printf ("python has been script requested (class %s, instance %d)\n",
+			pythonName, instance);
     }
   else
-    populateDictionary ("human", this);
+    populateDictionary ("human", this, instance);
 }
 
 
@@ -6691,27 +6692,28 @@ bool idPlayer::Aim (idEntity *enemy)
 
 /*
 =============
-idPlayer::Fire  (gaius)
+idPlayer::Fire - if firing is true then indicate the bot should fire weapon.
+                 This is achieved by simulating the pressing of the fire button.
+                 The amount of ammo for this weapon is returned.
+       (gaius)
 =============
  */
 
-int idPlayer::Fire (bool b)
+int idPlayer::Fire (bool firing)
 {
-  if (b)
+  if (firing)
     {
       buttonMask = 0;
       usercmd.buttons = 0;
       SelectWeapon (1, true);
       buttonMask |= BUTTON_ATTACK;
       usercmd.buttons |= BUTTON_ATTACK;
-      // FireWeapon ();
     }
   else
     {
       buttonMask &= ~(BUTTON_ATTACK);
       usercmd.buttons &= ~(BUTTON_ATTACK);
     }
-  // StopFiring ();
   if (currentWeapon >= 0 && currentWeapon < MAX_WEAPONS)
     return inventory.ammo[currentWeapon];
   return 0;
@@ -6788,6 +6790,8 @@ idPlayer::Killed
 */
 void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
 	float delay;
+	bool pythonBot = spawnArgs.GetBool ("pythonBot");  // gaius
+	// int pythonEntNum = spawnArgs.GetInt ("python_entnum"); // gaius
 
 	assert( !gameLocal.isClient );
 
@@ -6816,17 +6820,25 @@ void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 
 	animator.ClearAllJoints();
 
-	if ( StartRagdoll() ) {
-		pm_modelView.SetInteger( 0 );
-		minRespawnTime = gameLocal.time + RAGDOLL_DEATH_TIME;
-		maxRespawnTime = minRespawnTime + MAX_RESPAWN_TIME;
-	} else {
-		// don't allow respawn until the death anim is done
-		// g_forcerespawn may force spawning at some later time
-		delay = spawnArgs.GetFloat( "respawn_delay" );
-		minRespawnTime = gameLocal.time + SEC2MS( delay );
-		maxRespawnTime = minRespawnTime + MAX_RESPAWN_TIME;
-	}
+	if (pythonBot)
+	  {
+	    if (StartRagdoll ())
+	      pm_modelView.SetInteger (0);
+	  }
+	else
+	  {
+	    if ( StartRagdoll() ) {
+	      pm_modelView.SetInteger( 0 );
+	      minRespawnTime = gameLocal.time + RAGDOLL_DEATH_TIME;
+	      maxRespawnTime = minRespawnTime + MAX_RESPAWN_TIME;
+	    } else {
+	      // don't allow respawn until the death anim is done
+	      // g_forcerespawn may force spawning at some later time
+	      delay = spawnArgs.GetFloat( "respawn_delay" );
+	      minRespawnTime = gameLocal.time + SEC2MS( delay );
+	      maxRespawnTime = minRespawnTime + MAX_RESPAWN_TIME;
+	    }
+	  }
 
 	physicsObj.SetMovementType( PM_DEAD );
 	StartSound( "snd_death", SND_CHANNEL_VOICE, 0, false, NULL );

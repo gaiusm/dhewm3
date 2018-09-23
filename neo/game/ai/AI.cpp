@@ -754,14 +754,15 @@ void idAI::Spawn( void ) {
 
 	spawnArgs.GetBool( "python",				"0",		pythonBot);
 	gameLocal.Printf( "pythonBot is set to %d\n", pythonBot);
+	int instance = spawnArgs.GetInt ("python_entnum");
 	if (pythonBot)
 	  {
 	    gameLocal.Printf( "calling registerName (%s)\n", name.c_str());
-	    pybot = registerName (name.c_str(), this);
+	    pybot = registerName (name.c_str(), this, instance);
 	    gameLocal.Printf( "python script has connected (%s)\n", name.c_str());
 	  }
 	else
-	  populateDictionary (name.c_str(), this);
+	  populateDictionary (name.c_str(), this, instance);
 
 	spawnArgs.GetBool( "animate_z",				"0",		disableGravity );
 	spawnArgs.GetBool( "af_push_moveables",		"0",		af_push_moveables );

@@ -31,7 +31,7 @@ from botutils import *
 from socket import *
 
 superServer = 7000
-debug_protocol = False
+debug_protocol = True
 debug_turn = True
 
 
@@ -178,6 +178,7 @@ class basic:
     #
 
     def line2vec (self, l):
+        print "line2vec", l
         v = []
         for w in l.split ():
             v += [int (float (w))]
