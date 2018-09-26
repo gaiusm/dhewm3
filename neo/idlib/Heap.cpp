@@ -240,19 +240,20 @@ idHeap::AllocDefragBlock
 ================
 */
 void idHeap::AllocDefragBlock( void ) {
-	int		size = 0x40000000;
+  // int		size = 0x40000000;  // 1 GB
+  size_t size = 0x200000000;  // 8 GB
 
-	if ( defragBlock ) {
-		return;
-	}
-	while( 1 ) {
-		defragBlock = malloc( size );
-		if ( defragBlock ) {
-			break;
-		}
-		size >>= 1;
-	}
-	idLib::common->Printf( "Allocated a %i mb defrag block\n", size / (1024*1024) );
+  if (defragBlock)
+    return;
+
+  while (1)
+    {
+      defragBlock = malloc (size);
+      if (defragBlock)
+	break;
+      size >>= 1;
+    }
+  idLib::common->Printf ("Allocated a %ld mb defrag block\n", size / (1024*1024));
 }
 
 /*

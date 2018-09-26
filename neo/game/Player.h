@@ -593,6 +593,7 @@ public:
 	void doTurn (int angle);	// gaius
 	void select (int bitmask);  // gaius
 	int ChangeWeapon (int new_weapon); // gaius
+	void SetSkinColor (int choice);  // gaius
 
 private:
 	jointHandle_t			hipJoint;

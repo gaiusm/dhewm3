@@ -1,3 +1,14 @@
+2018-09-26      Gaius Mulley <gaius@gnu.org>
+
+	* neo/idlib/Heap.cpp:  allocate 8GB ram.
+          Eight python bots now connect.
+	* many debugging printf's switched off in the
+          Python bot code.
+	* neo/game/Player.cpp:  interim checkin of
+          experimental code attempting to change player skin.
+          Experimental code at stopping Python bots dying
+	  and killing off the main player.
+
 2018-01-08      Gaius Mulley <gaius@gnu.org>
 
 	* neo/game/Player.cpp:  enable turn debugging.

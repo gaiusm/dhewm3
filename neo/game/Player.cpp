@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 #include "Misc.h"
 
-const bool debug_turn = true;
+const bool debug_turn = false;
 const bool debug_select = false;
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
@@ -2270,6 +2270,8 @@ void idPlayer::SelectInitialSpawnPoint( idVec3 &origin, idAngles &angles ) {
 	if ( spot->spawnArgs.GetString( "skin", NULL, skin ) ) {
 		spawnArgs.Set( "spawn_skin", skin );
 	}
+	if (pythonBot)
+	  SetSkinColor (0);  // got to here
 
 	// activate the spawn locations targets
 	spot->PostEventMS( &EV_ActivateTargets, 0, this );
@@ -2448,6 +2450,39 @@ idPlayer::GetUserInfo
 idDict *idPlayer::GetUserInfo( void ) {
 	return &gameLocal.userInfo[ entityNumber ];
 }
+
+/*
+idplayer::SetSkinColor
+*/
+// gaius
+
+void idPlayer::SetSkinColor (int choice)
+{
+  switch (choice)
+    {
+    case 0:
+      //  green
+      baseSkinName = "skins/characters/player/marine_mp";
+      break;
+    case 1:
+      // blue
+      baseSkinName = "skins/characters/player/marine_mp_blue";
+      break;
+    case 2:
+      // red
+      baseSkinName = "skins/characters/player/marine_mp_red";
+      break;
+    default:
+      baseSkinName = "skins/characters/player/marine_mp";
+      break;
+    }
+  skin = declManager->FindSkin (baseSkinName, false);
+  assert (skin);
+  spawnArgs.Set ("spawn_skin", baseSkinName);
+  SetSkin (skin);
+  renderEntity.shaderParms[6] = 0.0f;
+}
+
 
 /*
 ==============

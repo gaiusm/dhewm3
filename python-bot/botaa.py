@@ -33,7 +33,8 @@ initMapSize = 1
 
 mapdir = os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps")
 debugging = False
-debugroute = True
+debugroute = False
+debugmap = False
 
 status_open, status_closed, status_secret = range (3)
 rooms = {}           #  dictionary of rooms
@@ -183,9 +184,10 @@ class aas:
             for d in rooms[r].doors:
                 self._drawLine (d[0], ' ')
             for l in rooms[r].lights:
-                print l
+                # print l
                 self._floor.set (l[0], l[1], 'l')
-        self.printFloor ()
+        if debugmap:
+            self.printFloor ()
         if b != None:
             self._updateEntities (b)
 
@@ -214,7 +216,8 @@ class aas:
                 self._weightLine (d[0], [1])
             for l in rooms[r].lights:
                 self._weightings.set (l[0], l[1], [wallCost])
-        self.printWeightings ()
+        if debugmap:
+            self.printWeightings ()
 
     #
     #  updateEntities - add movable and fixed entities to our aa map.
@@ -771,7 +774,8 @@ class aas:
         self._choices = [src]
         self._setCostRoute (src, 1, src)
         self._visited = []
-        print "src =", src, "dest =", dest
+        if debugroute:
+            print "src =", src, "dest =", dest
         self.checkLegal (src, "source")
         self.checkLegal (dest, "destination")
         if equVec (src, dest):
@@ -793,16 +797,19 @@ class aas:
                 return self._getCost (dest)
             for v in self._getNeighbours (u):
                 self._addChoice (v)
-                print "at", u, "checking step", v,
+                if debugroute:
+                    print "at", u, "checking step", v,
                 alternative = self._getCost (u) + self._getLength (v)
-                print "cost", alternative, "was", self._getCost (v)
+                if debugroute:
+                    print "cost", alternative, "was", self._getCost (v)
                 if alternative >= INFINITY:
                     print "bug in dijkstra", alternative, "should not exceed infinity"
                 if alternative < self._getCost (v):
                     if debugroute:
                         print "found a better route to '", v, "' value", alternative, "from '", src, "'"
                     self._setCostRoute (v, alternative, u)
-        print "unable to find a route from", src, "to", dest
+        if debugroute:
+            print "unable to find a route from", src, "to", dest
         return None
 
 
@@ -819,14 +826,16 @@ class aas:
     #
 
     def _defineRoute (self, src, dest):
-        print "route from", src, "to", dest, "is",
+        if debugroute:
+            print "route from", src, "to", dest, "is",
         r = [dest]
         while src != dest:
             k = '%d_%d' % (dest[0], dest[1])
             dest = self._prev[k]
             r += [dest]
         r.reverse ()
-        print r
+        if debugroute:
+            print r
         return r
 
 
@@ -865,8 +874,9 @@ class aas:
     #
 
     def _addChoice (self, c):
-        print "choices =", self._choices
-        print "visited =", self._visited
+        if debugroute:
+            print "choices =", self._choices
+            print "visited =", self._visited
         if len (self._choices) > 0:
             for i in self._choices:
                 if equVec (i, c):
@@ -979,7 +989,7 @@ def intVec (v):
 
 
 def _runtests ():
-    print "hello"
+    print "_runtests"
     m = aas (os.path.join (os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps"),
                            "tiny.pen"))
     src = intVec (rooms['1'].pythonMonsters[0][1])

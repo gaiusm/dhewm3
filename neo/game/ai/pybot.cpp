@@ -62,7 +62,7 @@ Author:  Gaius Mulley  <gaius@gnu.org>
 #include "Game_local.h"
 
 const bool debugging = true;
-const bool protocol_debugging = true;
+const bool protocol_debugging = false;
 
 #define S(x) #x
 #define S_(x) S(x)

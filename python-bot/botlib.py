@@ -34,6 +34,7 @@ from botcache import cache
 from chvec import *
 from math import atan2, sqrt
 
+debugging = False
 
 pen2doom3units = 48   # inches per ascii square
 angle_offset = 0
@@ -71,7 +72,8 @@ class bot:
         initPosD3 = self._cache.getPlayerStart ()
         self._scaleX = float (pen2doom3units)
         self._scaleY = float (pen2doom3units)
-        print "initPosPen =", initPosPen, "initPosD3 =", initPosD3
+        if debugging:
+            print "initPosPen =", initPosPen, "initPosD3 =", initPosD3
 
 
     #
@@ -208,22 +210,26 @@ class bot:
 
     def _calcAngle (self, v):
         if v[0] == 0:
-            print "short cut, not using atan2 north/south",
+            if debugging:
+                print "short cut, not using atan2 north/south",
             if v[1] > 0:
                 angle = 270
             else:
                 angle = 90
         elif v[1] == 0:
-            print "short cut, not using atan2 left/right",
+            if debugging:
+                print "short cut, not using atan2 left/right",
             if v[0] > 0:
                 angle = 180
             else:
                 angle = 0
         else:
-            print "using atan2",
+            if debugging:
+                print "using atan2",
             angle = incAngle (int (atan2 (v[1], v[0]) * 180.0 / 3.1415927), 180)   # radians into degrees
 
-        print "angle =", angle
+        if debugging:
+            print "angle =", angle
         return angle
 
     #
@@ -231,7 +237,8 @@ class bot:
     #
 
     def turnface (self, v, vel = None):
-        print "v =", v,
+        if debugging:
+            print "v =", v,
         angle = self._calcAngle (v)
         if vel == None:
             #
@@ -281,9 +288,11 @@ class bot:
 
     def journey (self, vel, dist, obj):
         self.reset ()
-        print "journey along route", self._aas._route
+        if debugging:
+            print "journey along route", self._aas._route
         dest = self.d2pv (self.getpos (obj))
-        print "aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest
+        if debugging:
+            print "aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest
         #
         #  keep stepping along route as long as the object does not move and we have dist units to move along
         #
@@ -295,14 +304,18 @@ class bot:
                 hopPos = self._aas.getHop (hops)
                 hops += 1
             if hops == 1:
-                print "single hop nav"
+                if debugging:
+                    print "single hop nav"
                 dist = self.ssNav (vel, dist, self._aas.getHop (0))
-                print "old journey route", self._aas._route
-                print "journey: reached coord", self._aas.getHop (0)
+                if debugging:
+                    print "old journey route", self._aas._route
+                    print "journey: reached coord", self._aas.getHop (0)
                 self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
-                print "new journey route", self._aas._route
+                if debugging:
+                    print "new journey route", self._aas._route
             else:
-                print "bulk hop nav", hops
+                if debugging:
+                    print "bulk hop nav", hops
                 dist = self.ssBulkNav (vel, self._aas.getHop (hops-1), hops)
                 if dist > 0:
                     self.reset ()
@@ -313,18 +326,21 @@ class bot:
                                 self._aas.removeHop (0, self._aas.getHop (0))
                             break
                     else:
-                        print "oops fallen off the route, aborting and will try again"
+                        if debugging:
+                            print "oops fallen off the route, aborting and will try again"
                         return
                     hops = 0
-                    print "new journey route", self._aas._route
-        if dist == 0:
-            print "journey algorithm ran out of distance"
-        elif equVec (dest, self.d2pv (self.getpos (obj))):
-            print "journey algorithm reached the goal object"
-        elif equVec (self._aas.getHop (0), dest):
-            print "journey algorithm reached intemediate hop"
-        else:
-            print "journey algorithm failed"
+                    if debugging:
+                        print "new journey route", self._aas._route
+        if debugging:
+            if dist == 0:
+                print "journey algorithm ran out of distance"
+            elif equVec (dest, self.d2pv (self.getpos (obj))):
+                print "journey algorithm reached the goal object"
+            elif equVec (self._aas.getHop (0), dest):
+                print "journey algorithm reached intemediate hop"
+            else:
+                print "journey algorithm failed"
         self.reset ()
 
 
@@ -360,28 +376,33 @@ class bot:
             hdoom = self.midPen2Doom (h)
             self.turnface (subVec (hdoom, mydoom))
             self.select (["turn"])
-            print "completed turn along", subVec (h, mypos)
+            if debugging:
+                print "completed turn along", subVec (h, mypos)
             if dist > self.p2d (1)/2:
                 d = self.p2d (1)/2
             else:
                 d = dist
             self.forward (vel, d)
             self.select (["move"])
-            print "completed forward", d, "units"
+            if debugging:
+                print "completed forward", d, "units"
             # time.sleep (2)
             self.reset ()
             dist -= d
             mypos = self.d2pv (self.getpos (self.me ()))
             if equVec (initpos, mypos):
-                print "not moved substantially"
+                if debugging:
+                    print "not moved substantially"
                 count += 1
                 if count == 4:
-                    print "stuck, try again"
+                    if debugging:
+                        print "stuck, try again"
                     self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
                     return dist
 
-        if equVec (h, mypos):
-            print "bot has reached", h, "!!"
+        if debugging:
+            if equVec (h, mypos):
+                print "bot has reached", h, "!!"
         return dist
 
 
@@ -396,29 +417,35 @@ class bot:
         mypos = self.d2pv (self.getpos (self.me ()))
         d = 0
         dist = 0
-        print "bot at", mypos, "trying to reach", h
+        if debugging:
+            print "bot at", mypos, "trying to reach", h
         mydoom = self.twoDdoom (self.getpos (self.me ()))
         hdoom = self.midPen2Doom (h)
         self.turnface (subVec (hdoom, mydoom))
         self.select (["turn"])
-        print "completed turn along", subVec (h, mypos)
+        if debugging:
+            print "completed turn along", subVec (h, mypos)
         d = self.p2d (noHops)/2
         # d = sqrt (sqr (mydoom[0] - hdoom[0]) + sqr (mydoom[1] - hdoom[1]))
         self.forward (vel, d)
         self.select (["move"])
-        print "completed forward", d, "units"
+        if debugging:
+            print "completed forward", d, "units"
         self.reset ()
         mypos = self.d2pv (self.getpos (self.me ()))
         if equVec (initpos, mypos):
-            print "not moved substantially"
+            if debugging:
+                print "not moved substantially"
             count += 1
             if count == 4:
-                print "stuck, try again"
+                if debugging:
+                    print "stuck, try again"
                 self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
                 return 0
         dist += d
-        if equVec (h, mypos):
-            print "bot has reached", h, "!!"
+        if debugging:
+            if equVec (h, mypos):
+                print "bot has reached", h, "!!"
         return dist
 
     #
