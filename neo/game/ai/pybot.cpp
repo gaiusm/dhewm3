@@ -790,6 +790,7 @@ public:
 
   void include (pyBotClass *p, int id);
   pyBotClass *remove (const char *name, int id);
+  pyBotClass *lookup (const char *name, int id);
 private:
   pyBotClass *content[MAX_PYLIST];
   int         ids[MAX_PYLIST];
@@ -877,6 +878,31 @@ pyBotClass *pyList::remove (const char *name, int id)
   return NULL;
 }
 
+/*
+ *  lookup - the bot with a name from the pyList.
+ *           NULL is returned if unsuccessful.
+ */
+
+pyBotClass *pyList::lookup (const char *name, int id)
+{
+  for (int i = 0; i < high; i++)
+    {
+      gameLocal.Printf ("looking for name = %s and id = %d\n", name, id);
+      if (content[i] != NULL)
+	{
+	  gameLocal.Printf ("  slot %i has name = %s and id = %d\n",
+			    i, content[i]->getName (), ids[i]);
+	}
+      if ((content[i] != NULL)
+	  && (strcmp (name, content[i]->getName ()) == 0)
+	  && (ids[i] == id))
+	{
+	  pyBotClass *p = content[i];
+	  return p;
+	}
+    }
+  return NULL;
+}
 
 /***********************************************************************/
 /* end of test */
@@ -895,6 +921,13 @@ static pyList pending;
  *  to their python clients.
  */
 static pyList active;
+
+/*
+ *  allbots contains a list of all Python bots and it is used to obtain
+ *  the pyBotClass object given a name and instance number.
+ */
+
+static pyList allbots;
 
 
 pyBufferClass::pyBufferClass (void)
@@ -1251,9 +1284,12 @@ void pyServerClass::writeConnectedServer (bool canBlock)
 
 void pyServerClass::closeServer (bool canBlock)
 {
-  close (connectFd);
-  state = toAccept;
-  connectFd = -1;
+  if (buffer.pyflushed (connectFd, canBlock))
+    {
+      close (connectFd);
+      state = toAccept;
+      connectFd = -1;
+    }
 }
 
 
@@ -1352,6 +1388,7 @@ pyBotClass *doRegisterName (const char *name, int instance, int rid)
       poll (true);
   } while (b == NULL);
   active.include (b, instance);
+  allbots.include (b, instance);
   b->setInstanceId (instance);
   b->setRpcId (rid);
   gameLocal.Printf ("registerName completing after successfully connecting with the script '%s' instance %d\n", name, instance);
@@ -1381,6 +1418,28 @@ pyBotClass *registerName (const char *name, idAI *idBot, int instance)
 pyBotClass *registerName (const char *name, idPlayer *ip, int instance)
 {
   return doRegisterName (name, instance, define (name, ip, instance));
+}
+
+
+/*
+ *  deRegisterName - the bot has died and we need to deregister its name.
+ */
+
+pyBotClass *deRegisterName (const char *name, idPlayer *idBot, int instance)
+{
+  pyBotClass *b = active.lookup (name, instance);
+  b->forceClose ();
+  return b;
+}
+
+
+/*
+ *  lookupName - returns the pyBotClass associated with, name, and, instance.
+ */
+
+pyBotClass *lookupName (const char *name, int instance)
+{
+  return allbots.lookup (name, instance);
 }
 
 
@@ -1516,11 +1575,11 @@ void pyBotClass::acceptServer (bool canBlock)
  *               it interprets the remote procedure call.
  */
 
-void pyBotClass::readServer (bool canBlock)
+void pyBotClass::readServer (bool canBlock, bool dead)
 {
   char *data = buffer.pyread (connectFd, canBlock);  /* data contains the bot name or "super"  */
 
-  if (data != NULL)
+  if ((data != NULL) && (! dead))
     interpretRemoteProcedureCall (data);
 }
 
@@ -2215,7 +2274,7 @@ void pyBotClass::selectComplete (int mask)
 }
 
 
-void pyBotClass::poll (bool canBlock)
+void pyBotClass::poll (bool canBlock, bool dead)
 {
   switch (state) {
 
@@ -2226,7 +2285,7 @@ void pyBotClass::poll (bool canBlock)
     acceptServer (canBlock);
     break;
   case toRead:
-    readServer (canBlock);
+    readServer (canBlock, dead);
     break;
   case toWrite:
     writeServer (canBlock);
@@ -2242,6 +2301,11 @@ void pyBotClass::poll (bool canBlock)
   }
 }
 
+
+void pyBotClass::forceClose (void)
+{
+  state = toClose;
+}
 
 const char *pyBotClass::getName (void)
 {

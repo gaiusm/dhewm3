@@ -1930,6 +1930,7 @@ idGameLocal::SpawnPlayer
 */
 void idGameLocal::SpawnPlayer( int clientNum )
 {
+  /* Notice entity 0 is the human player.  Or correct me if I'm wrong.  */  // gaius
   SpawnPlayer (clientNum, 0, false);
 }
 

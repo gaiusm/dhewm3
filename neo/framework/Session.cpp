@@ -2847,6 +2847,8 @@ void idSessionLocal::RunGameTic() {
 		} else if ( !idStr::Icmp( args.Argv(0), "devmap" ) ) {
 			mapSpawnData.serverInfo.Set( "devmap", "1" );
 			MoveToNewMap( args.Argv(1) );
+		} else if ( !idStr::Icmp( args.Argv(0), "pybot_died" ) ) {
+			// the socket has been closed to the pybot
 		} else if ( !idStr::Icmp( args.Argv(0), "died" ) ) {
 			// restart on the same map
 			UnloadMap();

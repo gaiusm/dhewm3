@@ -1217,7 +1217,7 @@ void idAI::UpdateAIScript( void ) {
   // gaius
   if (pythonBot)
     {
-      pybot->poll (false);
+      pybot->poll (false, AI_DEAD);
       UpdateScript ();
       UpdateAnimState ();
       return;

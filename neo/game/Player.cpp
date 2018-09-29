@@ -5802,34 +5802,46 @@ bool idPlayer::SkipCinematic( void ) {
 idPlayer::EvaluateControls
 ==============
 */
-void idPlayer::EvaluateControls( void ) {
-	// check for respawning
-	if ( health <= 0 ) {
-		if ( ( gameLocal.time > minRespawnTime ) && ( usercmd.buttons & BUTTON_ATTACK ) ) {
-			forceRespawn = true;
-		} else if ( gameLocal.time > maxRespawnTime ) {
-			forceRespawn = true;
-		}
+void idPlayer::EvaluateControls (void)
+{
+  // need to disable pythonBot from taking down the game if he is killed.
+  if (pythonBot)
+    {
+      if ( health <= 0 )
+	{
+	  gameLocal.sessionCommand = "pybot_died";
+	  deRegisterName (spawnArgs.GetString ("python_name"), this, gameLocal.localClientNum);
 	}
+    }
+  else
+    {
+      // check for respawning
+      if ( health <= 0 ) {
+        if ( ( gameLocal.time > minRespawnTime ) && ( usercmd.buttons & BUTTON_ATTACK ) ) {
+          forceRespawn = true;
+        } else if ( gameLocal.time > maxRespawnTime ) {
+          forceRespawn = true;
+        }
+      }
 
-	// in MP, idMultiplayerGame decides spawns
-	if ( forceRespawn && !gameLocal.isMultiplayer && !g_testDeath.GetBool() ) {
-		// in single player, we let the session handle restarting the level or loading a game
-		gameLocal.sessionCommand = "died";
-	}
+      // in MP, idMultiplayerGame decides spawns
+      if ( forceRespawn && !gameLocal.isMultiplayer && !g_testDeath.GetBool() ) {
+        // in single player, we let the session handle restarting the level or loading a game
+        gameLocal.sessionCommand = "died";
+      }
+    }
 
-	if ( ( usercmd.flags & UCF_IMPULSE_SEQUENCE ) != ( oldFlags & UCF_IMPULSE_SEQUENCE ) ) {
-		PerformImpulse( usercmd.impulse );
-	}
+  if ((usercmd.flags & UCF_IMPULSE_SEQUENCE) != (oldFlags & UCF_IMPULSE_SEQUENCE))
+    PerformImpulse (usercmd.impulse);
 
-	scoreBoardOpen = ( ( usercmd.buttons & BUTTON_SCORES ) != 0 || forceScoreBoard );
+  scoreBoardOpen = ((usercmd.buttons & BUTTON_SCORES) != 0 || forceScoreBoard);
 
-	oldFlags = usercmd.flags;
+  oldFlags = usercmd.flags;
 
-	AdjustSpeed();
+  AdjustSpeed ();
 
-	// update the viewangles
-	UpdateViewAngles();
+  // update the viewangles
+  UpdateViewAngles ();
 }
 
 /*
@@ -6475,7 +6487,7 @@ void idPlayer::Think( void ) {
 
 	EvaluateControls();
 	if (pythonBot && pybot)
-	  pybot->poll (false);
+	  pybot->poll (false, AI_DEAD);
 
 	if ( !af.IsActive() ) {
 		AdjustBodyAngles();
@@ -6830,6 +6842,12 @@ void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 
 	assert( !gameLocal.isClient );
 
+	if (pythonBot)
+	  {
+            gameLocal.Printf ("pybot is dead\n");
+            // return;
+          }
+
 	// stop taking knockback once dead
 	fl.noknockback = true;
 	if ( health < -999 ) {
@@ -6844,9 +6862,12 @@ void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 	heartInfo.Init( 0, 0, 0, BASE_HEARTRATE );
 	AdjustHeartRate( DEAD_HEARTRATE, 10.0f, 0.0f, true );
 
-	if ( !g_testDeath.GetBool() ) {
-		playerView.Fade( colorBlack, 12000 );
-	}
+	if (! pythonBot)
+	  {
+	    if ( !g_testDeath.GetBool() ) {
+	      playerView.Fade( colorBlack, 12000 );
+	    }
+	  }
 
 	AI_DEAD = true;
 	SetAnimState( ANIMCHANNEL_LEGS, "Legs_Death", 4 );

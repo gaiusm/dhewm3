@@ -86,7 +86,7 @@ class pyBotClass
   void initServer (int desiredPort);
   void setName (char *botname);
   const char *getName (void);
-  void poll (bool canBlock);
+  void poll (bool canBlock, bool dead);
   void selectComplete (int mask);
   bool getConnected (void);
   void setConnected (void);
@@ -95,11 +95,12 @@ class pyBotClass
   void setRpcId (int);
   int getInstanceId (void);
   void setInstanceId (int);
+  void forceClose (void);
  private:
   int tryActivate (int desiredPort);
   void acceptServer (bool canBlock);
   void registerServer (bool canBlock);
-  void readServer (bool canBlock);
+  void readServer (bool canBlock, bool dead);
   void closeServer (bool canBlock);
   void interpretRemoteProcedureCall (char *data);
   void writeServer (bool canBlock);
@@ -190,6 +191,19 @@ EXTERN pyBotClass *registerName (const char *name, idAI *idBot, int instance);
  */
 
 EXTERN pyBotClass *registerName (const char *name, idPlayer *idBot, int instance);
+
+
+/*
+ *  lookupName - returns the pyBotClass associated with, name, and, instance.
+ */
+
+EXTERN pyBotClass *lookupName (const char *name, int instance);
+
+/*
+ *  deRegisterName - the bot has died and we need to deregister its name.
+ */
+
+EXTERN pyBotClass *deRegisterName (const char *name, idPlayer *idBot, int instance);
 
 
 /*
