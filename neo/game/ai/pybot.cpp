@@ -1428,6 +1428,7 @@ pyBotClass *registerName (const char *name, idPlayer *ip, int instance)
 pyBotClass *deRegisterName (const char *name, idPlayer *idBot, int instance)
 {
   pyBotClass *b = active.lookup (name, instance);
+  pending.include (b, instance);
   b->forceClose ();
   return b;
 }
