@@ -1,6 +1,6 @@
 par
-   processor 0 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 0 ;
-   processor 1 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 1 ;
+   processor 0 (localhost) [::] $HOME/Sandpit/git-doom3/pybot-dhewm3/shell/runbot python_doommarine.py 0 ;
+   processor 1 (localhost) [::] $HOME/Sandpit/git-doom3/pybot-dhewm3/shell/runbot python_doommarine.py 1 ;
 end
 
 timeout 2h ;
