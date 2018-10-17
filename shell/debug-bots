@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ "$1" = "" ] ; then
+   echo "Usage:  debug-bots botfile.par"
+   echo "you must specify the name of the botfile.par"
+   exit 1
+fi
+
+if [ -f $HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1 ] ; then
+   export DEBUG_PYBOT=yes
+   DELAY=10
+
+   echo "You have ${DELAY} seconds to type your password at the prompt below"
+   ( sleep ${DELAY} ; d3 >& log ) &
+   mrun -f $HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1
+else
+   echo "$HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1 no such file"
+   exit 1
+fi

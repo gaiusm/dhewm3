@@ -1,0 +1,14 @@
+par
+   processor 0 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 0 ;
+   processor 1 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 1 ;
+   processor 2 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 2 ;
+   processor 3 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 3 ;
+   processor 4 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 4 ;
+   processor 5 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 5 ;
+   processor 6 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 6 ;
+   processor 7 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 7 ;
+end
+
+timeout 2h ;
+terminal 0 1 2 3 4 5 6 7 ;
+# debug gdb {program} processor 1 ;

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "$1" = "" ] ; then
+   echo "Usage:  debug-only-bots botfile.par"
+   echo "you must specify the name of the botfile.par"
+   exit 1
+fi
+
+if [ -f $HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1 ] ; then
+   export DEBUG_PYBOT=yes
+
+   mrun -f $HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1
+else
+   echo "$HOME/Sandpit/git-doom3/pybot-dhewm3/par/$1 no such file"
+   exit 1
+fi

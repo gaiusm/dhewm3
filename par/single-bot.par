@@ -1,0 +1,7 @@
+par
+   processor 0 (localhost) [::] $HOME/Sandpit/git-doom3/runbot python_doommarine.py 0 ;
+end
+
+timeout 2h ;
+terminal 0 ;
+# debug gdb {program} processor 1 ;
