@@ -2456,7 +2456,7 @@ idplayer::SetSkinColor
 */
 // gaius
 
-void idPlayer::SetSkinColor (int choice)
+bool idPlayer::SetSkinColor (int choice)
 {
   switch (choice)
     {
@@ -2481,6 +2481,14 @@ void idPlayer::SetSkinColor (int choice)
   spawnArgs.Set ("spawn_skin", baseSkinName);
   SetSkin (skin);
   renderEntity.shaderParms[6] = 0.0f;
+  return true;
+}
+
+
+// gaius
+
+void idPlayer::SetSkinAlpha (float value)
+{
 }
 
 
@@ -4852,6 +4860,23 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 		// just walk on
 	}
 }
+
+
+// gaius
+
+#if 0
+void idPlayer::footPrint (void)
+{
+  float fullsize = 48.0;
+  float halfSize = fullsize * 0.5f;
+  idVec3 origin = physicsObj.GetOrigin ();
+  idVec3 gravityDir = physicsObj.GetGravityNormal ();
+  float size = halfSize + gameLocal.random.RandomFloat () * halfSize;
+  gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint");
+}
+#endif
+
+
 
 /*
 ===============

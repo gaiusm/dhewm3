@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (C) 2017
+# Copyright (C) 2017-2019
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -19,7 +19,7 @@
 # Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 #
-# Author Gaius Mulley <gaius@gnu.org>
+# Author Gaius Mulley <gaius.mulley@southwales.ac.uk>
 #
 
 import time
@@ -64,25 +64,26 @@ class basic:
             #  The bot server will also know the superServer port and will tell us
             #  the port of the superServer.
             #
-            self.s.send ('super\n')
+            self.s.send ('super\n'.encode ('utf-8'))
             p = int (self.getPort ())
-            print superServer, p
+            printf ("superServer: %d, port %d\n", superServer, p)
             if p == superServer:
-                print "successfully double checked the superserver port"
+                printf ("successfully double checked the superserver port\n")
                 self.s.close ()             #  all done with that connection,
                 #  we reconnect and go for the real bot request.
                 self.s = self.connectSS (server)
                 #
                 #  all good, we now ask it about the botserver portno
                 #
-                print "sending botname request to superserver", name
-                self.s.send (name + '\n')   #  specific botserver requested
-                print "waiting for port reply from superserver", name
+                printf ("sending botname request to superserver: %s\n", name)
+                name +=  "\n"
+                self.s.send (name.encode ('utf-8'))   #  specific botserver requested
+                printf ("waiting for port reply from superserver: %s\n", name)
                 p = int (self.getPort ())
-                print "about to close this socket", name
+                printf ("about to close this socket: %s", name)
                 self.s.close ()             #  all done with the superServer
                 if p != 0:
-                    print "found botname", name, "port is", p
+                    printf ("found botname: %s port is %d\n", name, p)
                     break                   #  found the portno
                 #
                 #  at this point the bot server is not ready
@@ -92,7 +93,7 @@ class basic:
             else:
                 self.s.close ()             #  all done with this server
                 superServer = p             #  superServer has moved portno
-                print "superserver has changed port to", p
+                printf ("superserver has changed port to: %d\n", p)
         self.s = self.connectBot (server, p, name)
         self._maxX = None
         self._maxY = None
@@ -104,14 +105,14 @@ class basic:
 
     def connectSS (self, server):
         global superServer
-        print "bot trying to connect to the superserver on port", superServer
+        printf ("bot trying to connect to the superserver on port: %d\n", superServer)
         i = 0
         while True:
             for j in range (10):
                 success, s = self.tryConnectSS (server, superServer+j)
                 if success:
                     superServer = superServer+j
-                    print "bot connected to superserver on port", superServer
+                    printf ("bot connected to superserver on port: %d\n", superServer)
                     return s
             sys.stdout.write (".")
             sys.stdout.flush ()
@@ -144,12 +145,12 @@ class basic:
     def getLine (self):
         l = ""
         while True:
-            c = self.s.recv (1)
+            c = self.s.recv (1).decode ('utf-8')
             if c == '\n':
                 break
             l += c
         if debug_protocol:
-            print "<socket has sent>", l
+            printf ("<socket has sent>: %s\n", l)
         return l
 
     #
@@ -158,17 +159,17 @@ class basic:
 
     def connectBot (self, server, port, name):
         s = socket (AF_INET, SOCK_STREAM)
-        print "python bot trying to connect to the bot server", port, name
+        printf ("python bot trying to connect to the bot server: %d:%s\n", port, name)
         i = 0
         while True:
             try:
                 s.connect ((server, port))
                 break
             except:
-                print ".",
+                print(".", end=' ')
                 sys.stdout.flush ()
                 time.sleep (1)
-        print "bot connected to bot server"
+        printf ("ok\n")
         return s
 
 
@@ -179,7 +180,7 @@ class basic:
 
     def line2vec (self, l):
         if debug_protocol:
-            print "line2vec", l
+            print ("line2vec", l)
         v = []
         for w in l.split ():
             v += [int (float (w))]
@@ -196,8 +197,8 @@ class basic:
     def getpos (self, obj):
         l = "getpos %d\n" % (obj)
         if debug_protocol:
-            print "getpos command:", l
-        self.s.send (l)
+            print("getpos command:", l)
+        self.s.send (l.encode ("utf-8"))
         return self.line2vec (self.getLine ())
 
 
@@ -206,7 +207,7 @@ class basic:
     #
 
     def me (self):
-        self.s.send ("self\n")
+        self.s.send ("self\n".encode ('utf-8'))
         return int (self.getLine ())
 
 
@@ -215,7 +216,7 @@ class basic:
     #
 
     def health (self):
-        self.s.send ("health\n")
+        self.s.send ("health\n".encode ('utf-8'))
         return int (self.getLine ())
 
     #
@@ -223,7 +224,7 @@ class basic:
     #
 
     def angle (self):
-        self.s.send ("angle\n")
+        self.s.send ("angle\n".encode ('utf-8'))
         return int (self.getLine ())
 
 
@@ -233,7 +234,7 @@ class basic:
     #
 
     def maxobj (self):
-        self.s.send ("maxobj\n")
+        self.s.send ("maxobj\n".encode ('utf-8'))
         return int (self.getLine ())
 
 
@@ -243,7 +244,7 @@ class basic:
 
     def objectname (self, d):
         l = "objectname %d\n" % (d)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         return self.getLine ()
 
 
@@ -274,11 +275,11 @@ class basic:
         d = int (dist)
         l = "right %d %d\n" % (v, d)
         if debug_protocol:
-            print "requesting a right step", v, d
-        self.s.send (l)
+            print("requesting a right step", v, d)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
     #
@@ -290,11 +291,11 @@ class basic:
         d = int (dist)
         l = "forward %d %d\n" % (v, d)
         if debug_protocol:
-            print "requesting a forward step", v, d
-        self.s.send (l)
+            print("requesting a forward step", v, d)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -324,11 +325,11 @@ class basic:
         d = int (dist)
         l = "stepvec %d %d %d\n" % (f, r, d)
         if debug_protocol:
-            print "requesting a forward step", f, r, d
-        self.s.send (l)
+            print("requesting a forward step", f, r, d)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -340,11 +341,11 @@ class basic:
 
     def sync (self):
         if debug_protocol:
-            print "requesting sync"
-        self.s.send ("select any\n")
+            printf ("requesting sync\n")
+        self.s.send ("select any\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            printf ("doom returned: %s\n", l)
         return l
 
     #
@@ -366,10 +367,10 @@ class basic:
             else:
                 printf ("incorrect parameter to select (%s)\n", w)
         l = "select %d\n" % (b)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -380,11 +381,11 @@ class basic:
 
     def startFiring (self):
         if debug_protocol:
-            print "requesting to fire weapon"
-        self.s.send ("start_firing\n")
+            print("requesting to fire weapon")
+        self.s.send ("start_firing\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -395,11 +396,11 @@ class basic:
 
     def stopFiring (self):
         if debug_protocol:
-            print "requesting to stop firing weapon"
-        self.s.send ("stop_firing\n")
+            print("requesting to stop firing weapon")
+        self.s.send ("stop_firing\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -410,11 +411,11 @@ class basic:
 
     def reloadWeapon (self):
         if debug_protocol:
-            print "requesting to reload weapon"
-        self.s.send ("reload_weapon\n")
+            print("requesting to reload weapon")
+        self.s.send ("reload_weapon\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
     #
@@ -430,12 +431,12 @@ class basic:
 
     def changeWeapon (self, n):
         if debug_protocol:
-            print "requesting change weapon to", n
+            print("requesting change weapon to", n)
         s = "change_weapon %d\n" % (n)
-        self.s.send (s)
+        self.s.send (s.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
 
@@ -445,11 +446,11 @@ class basic:
 
     def ammo (self):
         if debug_protocol:
-            print "requesting ammo"
-        self.s.send ("ammo\n")
+            print("requesting ammo")
+        self.s.send ("ammo\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
     #
@@ -458,12 +459,12 @@ class basic:
 
     def aim (self, i):
         if debug_protocol:
-            print "requesting aim at", i
+            print("requesting aim at", i)
         l = "aim %d\n" % (i)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return l == 'true'
 
     #
@@ -472,12 +473,12 @@ class basic:
 
     def turn (self, angle, angle_vel):
         if debug_turn:
-            print "requesting turn ", angle, angle_vel
+            print("requesting turn ", angle, angle_vel)
         l = "turn %d %d\n" % (angle, angle_vel)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_turn:
-            print "old angle of bot", l
+            print("old angle of bot", l)
         return int (l)
 
     #
@@ -486,11 +487,11 @@ class basic:
 
     def getPenMapName (self):
         if debug_protocol:
-            print "requesting penmap"
-        self.s.send ("penmap\n")
+            print("requesting penmap")
+        self.s.send ("penmap\n".encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return l
 
     #
@@ -500,12 +501,12 @@ class basic:
 
     def getClassNameEntity (self, name):
         if debug_protocol:
-            print "requesting getclassnameentity"
+            print("requesting getclassnameentity")
         l = "get_class_name_entity %s\n" % (name)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
     #
@@ -515,12 +516,12 @@ class basic:
 
     def getPairEntity (self, left, right):
         if debug_protocol:
-            print "requesting get_pair_name_entity", left, right
+            print("requesting get_pair_name_entity", left, right)
         l = "get_pair_name_entity %s %s\n" % (left, right)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return int (l)
 
     #
@@ -536,12 +537,12 @@ class basic:
 
     def getEntityPos (self, i):
         if debug_protocol:
-            print "requesting get_entity_pos", i
+            print("requesting get_entity_pos", i)
         l = "get_entity_pos %d\n" % (i)
-        self.s.send (l)
+        self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
-            print "doom returned", l
+            print("doom returned", l)
         return tovecint (l)
 
     #
@@ -557,4 +558,4 @@ class basic:
     #
 
     def allobj (self):
-        return range (1, self.maxobj () + 1)
+        return list(range(1, self.maxobj () + 1))

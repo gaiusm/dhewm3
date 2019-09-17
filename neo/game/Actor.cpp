@@ -458,6 +458,8 @@ idActor::idActor( void ) {
 
 	enemyNode.SetOwner( this );
 	enemyList.SetOwner( this );
+	makeFootPrints = true;      // gaius
+	leftFoot = false;  // gaius
 }
 
 /*
@@ -2447,13 +2449,49 @@ void idActor::Event_DisableEyeFocus( void ) {
 	}
 }
 
+
+void idActor::AddFootPrint (void)
+{
+  if (makeFootPrints && (GetPhysics ()->HasGroundContacts ()))
+    {
+      float tall = (eyeOffset.z) ? eyeOffset.z : 12.0 * 6.0;
+      float fullsize = tall / 3.0;
+      float halfSize = fullsize * 0.5f;
+      idVec3 origin = GetPhysics ()->GetOrigin ();
+      idVec3 gravityDir = GetPhysics ()->GetGravity ();
+      float size = halfSize + gameLocal.random.RandomFloat () * halfSize;
+      // float angle = GetEnt ().viewAngles.yaw;
+#if 1
+      float angle = GetPhysics ()->GetAxis ().ToAngles ().yaw;
+#endif
+      gameLocal.Printf("angle %f\n", angle);
+
+      if (leftFoot)
+	gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_left", angle + idMath::TWO_PI / 4.0);
+      else
+	gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_right", angle + idMath::TWO_PI / 4.0);
+      leftFoot = !leftFoot;
+    }
+}
+
+
+bool idActor::SetFootPrints (bool value)
+{
+  bool old = makeFootPrints;
+  makeFootPrints = value;
+  leftFoot = false;
+  return old;
+}
+
+
 /*
 ===============
 idActor::Event_Footstep
 ===============
 */
 void idActor::Event_Footstep( void ) {
-	PlayFootStepSound();
+  AddFootPrint ();
+  PlayFootStepSound ();
 }
 
 /*

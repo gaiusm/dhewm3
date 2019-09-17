@@ -706,7 +706,7 @@ void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, co
 		if ( sndShader ) {
 			StartSoundShader( sndShader, SND_CHANNEL_ANY, 0, false, NULL );
 		} else {
-			StartSound( "snd_bullethole", SND_CHANNEL_ANY, 0, false, NULL );
+			StartSound( "snd_zbullethole", SND_CHANNEL_ANY, 0, false, NULL );
 		}
 	}
 

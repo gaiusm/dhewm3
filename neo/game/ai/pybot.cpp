@@ -1331,7 +1331,7 @@ void forkScript (const char *name, int id)
       if (pid == 0)
 	/* child process.  */
 	{
-	  int r = execl ("/usr/bin/python", "python", buffer, idtext, (char *)NULL);
+	  int r = execl ("/usr/bin/python3", "python3", buffer, idtext, (char *)NULL);
 
 	  if (r != 0)
 	    perror ("execl");

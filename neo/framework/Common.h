@@ -57,6 +57,8 @@ typedef enum {
 
 #define STRTABLE_ID				"#str_"
 #define STRTABLE_ID_LENGTH		5
+// gaius
+#define ENABLE_RAYTRACED
 
 extern idCVar		com_version;
 extern idCVar		com_skipRenderer;

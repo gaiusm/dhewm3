@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (C) 2017
+# Copyright (C) 2017-2019
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -19,7 +19,7 @@
 # Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 #
-# Author Gaius Mulley <gaius@gnu.org>
+# Author Gaius Mulley <gaius.mulley@southwales.ac.uk>
 #
 
 from array2d import array2d
@@ -34,13 +34,27 @@ initMapSize = 1
 mapdir = os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps")
 debugging = False
 debugroute = False
-debugmap = False
+debugmap = True
 
-status_open, status_closed, status_secret = range (3)
+status_open, status_closed, status_secret = list(range(3))
 rooms = {}           #  dictionary of rooms
 maxx, maxy = 0, 0    #  the size of our map
 INFINITY = 1000000   #  must be bigger than all computed distance costs
 wallCost = 0         #  a number used to represent the cost of going through a wall
+
+
+def drPrintf (format, *args):
+    if debugroute:
+        printf (format, args)
+
+def dPrintf (format, *args):
+    if debugging:
+        printf (format, args)
+
+def dmPrintf (format, *args):
+    if debugmap:
+        printf (format, args)
+
 
 class roomInfo:
     def __init__ (self, r, w, d):
@@ -108,8 +122,7 @@ def toLine (l):
 #
 
 def _sortWall (w):
-    if debugging:
-        print "sortwall", w
+    dPrintf ("sortwall", w)
     if isVertical (w):
         if w[0][1] > w[1][1]:
             return [w[1], w[0]]
@@ -118,14 +131,13 @@ def _sortWall (w):
         if w[0][0] > w[1][0]:
             return [w[1], w[0]]
         return w
-    print "wall problem", w
-    internalError ('wall must be horizontal or vertical')
+    errorLine ("the wall must be horizontal or vertical")
 
 
 def newRoom (n):
     global rooms
-    if rooms.has_key (n):
-        error ("room " + n + " has already been defined")
+    if n in rooms:
+        errorLine ("room " + n + " has already been defined")
     rooms[n] = roomInfo (n, [], [])
     return rooms[n]
 
@@ -178,13 +190,12 @@ class aas:
     def _recreateFloor (self, b):
         del self._floor
         self._floor = array2d (initMapSize, initMapSize, ' ')
-        for r in rooms.keys ():
+        for r in list(rooms.keys ()):
             for w in rooms[r].walls:
                 self._drawLine (w, '#')
             for d in rooms[r].doors:
                 self._drawLine (d[0], ' ')
             for l in rooms[r].lights:
-                # print l
                 self._floor.set (l[0], l[1], 'l')
         if debugmap:
             self.printFloor ()
@@ -209,7 +220,7 @@ class aas:
     def _calcWeightings (self):
         del self._weightings
         self._weightings = array2d (self._floor.high ()[0], self._floor.high ()[1], [1])
-        for r in rooms.keys ():
+        for r in list(rooms.keys ()):
             for w in rooms[r].walls:
                 self._weightLine (w, [wallCost])
             for d in rooms[r].doors:
@@ -235,7 +246,7 @@ class aas:
         s = "   "
         for i in range (self._floor.high ()[0]):
             if i % 10 == 0:
-                s += "%d" % (i / 10)
+                s += "%d" % int (i / 10)
             else:
                 s += " "
         printf ("%s\n", s)
@@ -259,7 +270,7 @@ class aas:
 
     def printFloor (self, src = None, dest = None):
         self.printXaxis (True)
-        yaxis = range (self._floor.high ()[1])
+        yaxis = list(range(self._floor.high ()[1]))
         yaxis.reverse ()
         for j in yaxis:
             s = "%2d" % j
@@ -286,7 +297,7 @@ class aas:
 
     def printWeightings (self):
         self.printXaxis (True)
-        yaxis = range (self._floor.high ()[1])
+        yaxis = list(range(self._floor.high ()[1]))
         yaxis.reverse ()
         for j in yaxis:
             s = "%2d" % j
@@ -325,7 +336,7 @@ class aas:
 
     def _loadMap (self, mapname):
         self._filename = os.path.join (mapdir, mapname)
-        print "need to read in", self._filename
+        printf ("need to read in: %s\n", self._filename)
         self.words = self.lexicalPen (open (self._filename, 'r'))
         self.parsePen ()
 
@@ -334,8 +345,7 @@ class aas:
     #
 
     def errorLine (self, text):
-        full = "%s:%d:%s\n" % (self._filename, self._currentLineNo, text)
-        print full,
+        printf ("%s:%d:%s\n" % (self._filename, self._currentLineNo, text))
 
     #
     #  doGetToken - return the first word and remaining words.
@@ -643,6 +653,10 @@ class aas:
         return False
 
 
+    #
+    #  spawnDesc := "SPAWN" "PLAYER" "AT" posDesc =:
+    #
+
     def spawnDesc (self):
         self.expect ('SPAWN')
         self.expect ('PLAYER')
@@ -664,7 +678,7 @@ class aas:
         return self.posDesc ()
 
     #
-    #  colourDesc - int int int
+    #  colourDesc := int int int =:
     #
 
     def colourDesc (self):
@@ -674,17 +688,36 @@ class aas:
                     return True
         return False
 
-
     #
-    #  defaultDesc := 'DEFAULT' ['MID' | 'CEIL' | 'FLOOR']
+    #  defaultDesc := "DEFAULT" defaultColourConfig =:
     #
-
     def defaultDesc (self):
         self.expect ('DEFAULT')
+        self.defaultConfig ()
+
+    #
+    #  defaultConfig := "COLOUR" defaultColourConfig |
+    #                   "TEXTURE" defaultTextureConfig =:
+    #
+
+    def defaultConfig (self):
+        if self.expecting (['COLOUR']):
+            self.defaultColourConfig ()
+        elif self.expecting (['TEXTURE']):
+            self.defaultTextureConfig ()
+        else:
+            self.errorLine ('expecting COLOUR or TEXTURE after DEFAULT')
+
+    #
+    #  defaultColourConfig := "COLOUR" ( "CEILING" | "MID" | "FLOOR" ) int int int =:
+    #
+
+    def defaultColourConfig (self):
+        self.expect ('COLOUR')
         if self.expecting (['MID']):
             self.expect ('MID')
-        elif self.expecting (['CEIL']):
-            self.expect ('CEIL')
+        elif self.expecting (['CEILING']):
+            self.expect ('CEILING')
         elif self.expecting (['FLOOR']):
             self.expect ('FLOOR')
         self.expect ('COLOUR')
@@ -692,7 +725,9 @@ class aas:
 
 
     #
-    #  roomDesc := "ROOM" integer { doorDesc | wallDesc | treasureDesc | ammoDesc | lightDesc | weaponDesc | monsterDesc | spawnDesc | insideDesc } =:
+    #  roomDesc := "ROOM" integer { doorDesc | wallDesc | treasureDesc | ammoDesc |
+    #                     lightDesc | insideDesc | weaponDesc | monsterDesc |
+    #                     spawnDesc | defaultDesc | soundDesc } =:
     #
 
     def roomDesc (self):
@@ -702,8 +737,8 @@ class aas:
                 self._curRoomNo = self._curInteger
                 self._curRoom = newRoom (self._curRoomNo)
                 if self._verbose:
-                    print "roomDesc", curRoomNo
-                while self.expecting (['DOOR', 'WALL', 'TREASURE', 'AMMO', 'WEAPON', 'LIGHT', 'MONSTER', 'SPAWN', 'INSIDE', 'DEFAULT']):
+                    printf ("roomDesc: %d\n", curRoomNo)
+                while self.expecting (['DOOR', 'WALL', 'TREASURE', 'AMMO', 'WEAPON', 'LIGHT', 'MONSTER', 'SPAWN', 'INSIDE', 'DEFAULT', 'SOUND']):
                     if self.expecting (['DOOR']):
                         self.doorDesc ()
                     elif self.expecting (['WALL']):
@@ -726,6 +761,8 @@ class aas:
                         self.insideDesc ()
                     elif self.expecting (['DEFAULT']):
                         self.defaultDesc ()
+                    elif self.expecting (['SOUND']):
+                        self.soundDesc ()
                 self.expect ('END')
                 return True
             else:
@@ -734,15 +771,13 @@ class aas:
 
 
     #
-    #  parsePen := roomDesc { roomDesc } randomTreasure "END." =:
+    #  parsePen := roomDesc { roomDesc } "END." =:
     #
 
     def parsePen (self):
         if self.roomDesc ():
             while self.roomDesc ():
                 pass
-            # if randomTreasure ():
-            #    pass
             self.expect ("END.")
             return True
         return False
@@ -753,7 +788,7 @@ class aas:
 
     def checkLegal (self, pos, message):
         if self._floor.get (pos[0], pos[1]) == '#':
-            print "error", message, "position", pos, "is a wall"
+            printf ("error %s position %s is a wall\n", message, pos)
             sys.exit (1)
 
     #
@@ -774,49 +809,41 @@ class aas:
         self._choices = [src]
         self._setCostRoute (src, 1, src)
         self._visited = []
-        if debugroute:
-            print "src =", src, "dest =", dest
+        # drPrintf ("src = %s, dest = %s\n", src, dest)
         self.checkLegal (src, "source")
         self.checkLegal (dest, "destination")
         if equVec (src, dest):
             self._route = [dest]
             return 0
         while self._choices != []:
-            if debugroute:
-                print "we have the following nodes to explore:", self._choices
+            # drPrintf ("we have the following nodes to explore: %s\n", self._choices)
             u = self._getBestChoice ()
             self._visited += [u]
-            if debugroute:
-                print "have chosen", u, "cost from src is", self._getCost (u)
+            # drPrintf ("have chosen node %s cost from src is %d\n", u, self._getCost (u))
             if equVec (u, dest):
-                if debugroute:
-                    print "found end of route"
+                drPrintf ("found end of route\n")
                 self._route = self._defineRoute (src, dest)
                 if debugroute:
                     self.printFloor (src, dest)
                 return self._getCost (dest)
             for v in self._getNeighbours (u):
                 self._addChoice (v)
-                if debugroute:
-                    print "at", u, "checking step", v,
+                # drPrintf ("at %d checking step %d\n", u, v)
                 alternative = self._getCost (u) + self._getLength (v)
-                if debugroute:
-                    print "cost", alternative, "was", self._getCost (v)
+                # drPrintf ("cost %d was %d", alternative, self._getCost (v))
                 if alternative >= INFINITY:
-                    print "bug in dijkstra", alternative, "should not exceed infinity"
+                    drPrintf ("bug in dijkstra %d should not exceed infinity", alternative)
                 if alternative < self._getCost (v):
-                    if debugroute:
-                        print "found a better route to '", v, "' value", alternative, "from '", src, "'"
+                    # drPrintf ("found a better route to '%s' value %s from '%s'\n", v, alternative, src)
                     self._setCostRoute (v, alternative, u)
-        if debugroute:
-            print "unable to find a route from", src, "to", dest
+        # drPrintf ("unable to find a route from %s to %s\n", src, dest)
         return None
 
 
     def _setCostRoute (self, n, cost, prev):
         k = '%d_%d' % (n[0], n[1])
         if debugroute:
-            print 'cost[', k, '] =', cost, 'prev =', prev, '_prev[', k, '] =', prev
+            print('cost[', k, '] =', cost, 'prev =', prev, '_prev[', k, '] =', prev)
         self._cost[k] = cost
         self._prev[k] = prev
 
@@ -827,7 +854,7 @@ class aas:
 
     def _defineRoute (self, src, dest):
         if debugroute:
-            print "route from", src, "to", dest, "is",
+            print("route from", src, "to", dest, "is", end=' ')
         r = [dest]
         while src != dest:
             k = '%d_%d' % (dest[0], dest[1])
@@ -835,7 +862,7 @@ class aas:
             r += [dest]
         r.reverse ()
         if debugroute:
-            print r
+            print(r)
         return r
 
 
@@ -875,8 +902,8 @@ class aas:
 
     def _addChoice (self, c):
         if debugroute:
-            print "choices =", self._choices
-            print "visited =", self._visited
+            print("choices =", self._choices)
+            print("visited =", self._visited)
         if len (self._choices) > 0:
             for i in self._choices:
                 if equVec (i, c):
@@ -914,9 +941,9 @@ class aas:
 
     def _getCost (self, p):
         k = '%d_%d' % (p[0], p[1])
-        if not self._cost.has_key (k):
+        if k not in self._cost:
             if debugroute:
-                print "no cost entry, setting to infinity", k
+                print("no cost entry, setting to infinity", k)
             self._cost[k] = INFINITY
         return self._cost[k]
 
@@ -945,7 +972,7 @@ class aas:
 
     def _getNeighbours (self, p):
         k = '%d_%d' % (p[0], p[1])
-        if not self._neighbours.has_key (k):
+        if k not in self._neighbours:
             n = []
             # south, east, west, north
             for v in [[-1, 0], [1, 0], [0, -1], [0, 1]]:
@@ -972,11 +999,11 @@ class aas:
     #
 
     def getPlayerStart (self):
-        for r in rooms.keys ():
+        for r in list(rooms.keys ()):
             if rooms[r].worldspawn != []:
                 return rooms[r].worldspawn[0]
-        print "the pen map should contain one worldspawn location"
-        print "this needs to be fixed before area awareness makes any sence to the bot"
+        print("the pen map should contain one worldspawn location")
+        print("this needs to be fixed before area awareness makes any sence to the bot")
         return [1, 1]
 
 
@@ -989,15 +1016,15 @@ def intVec (v):
 
 
 def _runtests ():
-    print "_runtests"
+    print("_runtests")
     m = aas (os.path.join (os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps"),
                            "tiny.pen"))
     src = intVec (rooms['1'].pythonMonsters[0][1])
     dest = intVec (rooms['3'].worldspawn[0])
     m.printFloor (src, dest)
     c = m.calcnav (src, dest)
-    print "cost =", c
-    print m._route
+    printf ("cost = %d\n", c)
+    print (m._route)
     m.printFloor (src, dest)
 
 

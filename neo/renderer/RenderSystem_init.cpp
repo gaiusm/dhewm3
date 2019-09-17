@@ -1296,6 +1296,34 @@ void idRenderSystemLocal::TakeScreenshot( int width, int height, const char *fil
 }
 
 
+#if 0
+// remove this function
+/*
+==================
+RT_TakeScreenshot  (gaius)
+
+Move to tr_imagefiles.c...
+
+Will automatically tile render large screen shots if necessary
+Downsample is the number of steps to mipmap the image before saving it
+If ref == NULL, session->updateScreen will be used
+==================
+*/
+void idRenderSystemLocal::RT_TakeScreenshot (const char *fileName, renderView_t *ref)
+{
+  byte *buffer = (byte *) R_StaticAlloc (3 * sizeof (byte) * ref->height * ref->width);
+  takingScreenshot = true;
+
+  ScreenToGrey (ref->width, ref->height, buffer);
+  InvertYAxisBuffer (ref->width, ref->height, buffer);
+  rt_world->traceRays (buffer, ref);
+  WriteFrameShot (ref->width, ref->height, fileName, buffer);
+
+  R_StaticFree (buffer);
+  takingScreenshot = false;
+}
+#endif
+
 /*
 ==================
 R_ScreenshotFilename
@@ -1404,6 +1432,7 @@ void R_ScreenShot_f( const idCmdArgs &args ) {
 
 	common->Printf( "Wrote %s\n", checkname.c_str() );
 }
+
 
 /*
 ===============

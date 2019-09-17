@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (C) 2017
+# Copyright (C) 2017-2019
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -19,7 +19,7 @@
 # Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 #
-# Author Gaius Mulley <gaius@gnu.org>
+# Author Gaius Mulley <gaius.mulley@southwales.ac.uk>
 #
 
 import time
@@ -54,7 +54,7 @@ class cache:
     #
 
     def reset (self):
-        print "reset cache"
+        print("reset cache")
         self._dict = {}
 
     #
@@ -62,7 +62,7 @@ class cache:
     #
 
     def getPenName (self):
-        if not self._dict.has_key ('getpenname'):
+        if 'getpenname' not in self._dict:
             self._dict['getpenname'] = self._basic.genPenName ()
         return self._dict['getpenname']
 
@@ -72,7 +72,7 @@ class cache:
 
     def getpos (self, obj):
         l = 'getpos_%d' % (obj)
-        if not self._dict.has_key (l):
+        if l not in self._dict:
             self._dict[l] = self._basic.getpos (obj)
         return self._dict[l]
 
@@ -81,7 +81,7 @@ class cache:
     #
 
     def me (self):
-        if not self._dict.has_key ('me'):
+        if 'me' not in self._dict:
             self._dict['me'] = self._basic.me ()
         return self._dict['me']
 
@@ -91,7 +91,7 @@ class cache:
     #
 
     def maxobj (self):
-        if not self._dict.has_key ('maxobj'):
+        if 'maxobj' not in self._dict:
             self._dict['maxobj'] = self._basic.maxobj ()
         return self._dict['maxobj']
 
@@ -100,7 +100,7 @@ class cache:
     #
 
     def allobj (self):
-        return range (1, self.maxobj () + 1)
+        return list(range(1, self.maxobj () + 1))
 
     #
     #  objectname - return the name of the object, d.
@@ -108,7 +108,7 @@ class cache:
 
     def objectname (self, d):
         l = "objectname %d\n" % (d)
-        if not self._dict.has_key (l):
+        if l not in self._dict:
             self._dict[l] = self._basic.objectname (d)
         return self._dict[l]
 
@@ -118,7 +118,7 @@ class cache:
 
     def isvisible (self, d):
         l = "isvisible %d\n" % (d)
-        if not self._dict.has_key (l):
+        if l not in self._dict:
             self._dict[l] = self._basic.isvisible (d)
         return self._dict[l]
 
@@ -128,7 +128,7 @@ class cache:
 
     def isfixed (self, d):
         l = "isfixed %d\n" % (d)
-        if not self._dict.has_key (l):
+        if l not in self._dict:
             self._dict[l] = self._basic.isvisible (d)
         return self._dict[l]
 
@@ -222,7 +222,7 @@ class cache:
     #
 
     def ammo (self):
-        if not self._dict.has_key ('ammo'):
+        if 'ammo' not in self._dict:
             self._dict['ammo'] = self._basic.ammo ()
         return self._dict['ammo']
 
@@ -231,7 +231,7 @@ class cache:
     #
 
     def aim (self, i):
-        print "cache aim"
+        print("cache aim")
         return self._basic.aim (i)
 
     #
@@ -242,7 +242,7 @@ class cache:
     #
 
     def angle (self):
-        if not self._dict.has_key ('angle'):
+        if 'angle' not in self._dict:
             self._dict['angle'] = self._basic.angle ()
         return self._dict['angle']
 
@@ -275,7 +275,7 @@ class cache:
     #
 
     def getPenMapName (self):
-        if not self._dict.has_key ('getpenmapname'):
+        if 'getpenmapname' not in self._dict:
             self._dict['getpenmapname'] = self._basic.getPenMapName ()
         return self._dict['getpenmapname']
 
@@ -285,6 +285,6 @@ class cache:
     #
 
     def getPlayerStart (self):
-        if not self._dict.has_key ('info_player_start'):
+        if 'info_player_start' not in self._dict:
             self._dict['info_player_start'] = self._basic.getPlayerStart ()
         return self._dict['info_player_start']

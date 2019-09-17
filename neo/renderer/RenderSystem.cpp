@@ -37,6 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "renderer/RenderWorld_local.h"
 
 #include "renderer/tr_local.h"
+#include "idlib/math/Vector.h"
 
 idRenderSystemLocal	tr;
 idRenderSystem	*renderSystem = &tr;
@@ -586,6 +587,144 @@ void idRenderSystemLocal::SetBackEndRenderer() {
 
 	r_renderer.ClearModified();
 }
+
+
+#if 0
+void idRenderSystemLocal::WriteFrameShot (int windowWidth, int windowHeight,
+					  const char *fileName, byte *buffer)
+{
+  FILE *f = fopen (fileName, "w");
+  fprintf (f, "P6\n%d\n%d\n255\n", windowWidth, windowHeight);
+  fwrite (buffer, (size_t) (windowWidth * windowHeight), (size_t) 3, f);
+  fclose (f);
+}
+#endif
+
+
+void idRenderSystemLocal::ReadScreenIntoBuffer (int width, int height, byte *buffer)
+{
+#if 1
+  byte *colorReadback = (byte *) R_StaticAlloc (width * height * 4);
+  int i = 0;
+  int j = 0;
+  int k;
+
+  printf ("ReadScreenIntoBuffer colorReadback = %p\n", colorReadback);
+  qglReadBuffer (GL_FRONT);
+  qglReadPixels (0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, colorReadback);
+  printf ("colorReadback = %p\n", colorReadback);
+  do
+    {
+      for (k = 0; k < 3; k++)
+	{
+	  buffer[j] = colorReadback[i];
+	  j++;
+	  i++;
+	}
+      i++;
+    }
+  while (i < width * height * 4);
+  R_StaticFree (colorReadback);
+#endif
+}
+
+
+void idRenderSystemLocal::InvertYAxisBuffer (int width, int height, byte *buffer)
+{
+  const int bytesPerPixel = 3;
+
+  for (int j = 0; j < height / 2; j++)
+    {
+      byte *line_top = (byte *) &buffer[j * width * bytesPerPixel];
+      byte *line_bot = (byte *) &buffer[(height-1-j) * width * bytesPerPixel];
+      for (int i = 0; i < width * bytesPerPixel; i++)
+      {
+	byte copy = *line_top;
+	*line_top = *line_bot;
+	*line_bot = copy;
+	line_top++;
+	line_bot++;
+      }
+    }
+}
+
+
+void idRenderSystemLocal::DrawScreenFromBuffer (int width, int height, byte *buffer)
+{
+#if 1
+  byte *colorReadback = (byte *) R_StaticAlloc (width * height * 4);
+  int i = 0;
+  int j = 0;
+  int k;
+
+  printf ("DrawScreenFromBuffer colorReadback = %p\n", colorReadback);
+  do
+    {
+      for (k = 0; k < 3; k++)
+	{
+	  colorReadback[i] = buffer[j];
+	  j++;
+	  i++;
+	}
+      colorReadback[i] = 0;
+      i++;
+    }
+  while (i < width * height * 4);
+
+  // draw buffer back to the screen
+  qglLoadIdentity ();
+  qglMatrixMode (GL_PROJECTION);
+  GL_State (GLS_DEPTHFUNC_ALWAYS);
+  qglPushMatrix ();
+  qglLoadIdentity ();
+  qglOrtho (0, 1, 0, 1, -1, 1);
+  qglRasterPos2f (0, 0);
+  qglPopMatrix ();
+  qglColor3f (1, 1, 1);
+  globalImages->BindNull();
+  qglMatrixMode (GL_MODELVIEW);
+
+  qglDrawPixels (glConfig.vidWidth, glConfig.vidHeight, GL_RGBA , GL_UNSIGNED_BYTE, colorReadback);
+  R_StaticFree (colorReadback);
+#endif
+}
+
+
+/*
+=================
+ScreenToGrey - convert the window with width, height to grey scale.   (gaius)
+=================
+*/
+
+void idRenderSystemLocal::ScreenToGrey (int width, int height, byte *buffer)
+{
+  byte *p = buffer;
+  byte *q;
+  unsigned int a;
+
+  ReadScreenIntoBuffer (width, height, buffer);
+#if 1
+  for (int i = 0; i < width * height; i++)
+    {
+      // average out the r, g, b to obtain grey.
+      q = p;
+      a = 0;
+      for (int k = 0; k < 3; k++)
+	{
+	  a += (unsigned int) (*p);
+	  p++;
+	}
+      a /= 3;
+      for (int k = 0; k < 3; k++)
+	{
+	  *q = (byte) (a);
+	  q++;
+	}
+    }
+#endif
+  DrawScreenFromBuffer (width, height, buffer);
+}
+
 
 /*
 ====================

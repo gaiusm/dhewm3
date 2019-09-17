@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/MapFile.h"
 
+
+
 /*
 ===============
 FloatCRC
@@ -529,6 +531,7 @@ unsigned int idMapBrush::GetGeometryCRC( void ) const {
 	return crc;
 }
 
+
 /*
 ================
 idMapEntity::Parse
@@ -553,6 +556,7 @@ idMapEntity *idMapEntity::Parse( idLexer &src, bool worldSpawn, float version ) 
 	}
 
 	mapEnt = new idMapEntity();
+	// rt_module_init ();   /* gaius  */
 
 	if ( worldSpawn ) {
 		mapEnt->primitives.Resize( 1024, 256 );

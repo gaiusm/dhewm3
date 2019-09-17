@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright (C) 2017
+# Copyright (C) 2017-2019
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -19,13 +19,22 @@
 # Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 #
-# Author Gaius Mulley <gaius@gnu.org>
+# Author Gaius Mulley <gaius.mulley@southwales.ac.uk>
 #
 
+pending = ""
 
 #
 #  printf - keeps C programmers happy :-)
 #
 
 def printf (format, *args):
-    print str(format) % args,
+    global pending
+    try:
+        if pending != "":
+            copy = pending
+            pending = ""
+            printf (copy)
+        print (str (format) % args, end=' ')
+    except BlockingIOError:
+        pending += str (format) % args

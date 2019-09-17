@@ -738,6 +738,14 @@ public:
 	void					SetBackEndRenderer();			// sets tr.backEndRenderer based on cvars
 	void					RenderViewToViewport( const renderView_t *renderView, idScreenRect *viewport );
 
+	void ScreenToGrey (int width, int height, byte *buffer);  // gaius
+	void WriteFrameShot (int windowWidth, int windowHeight, const char *fileName, byte *buffer);  // (gaius)
+	void DrawScreenFromBuffer (int width, int height, byte *buffer);  // (gaius)
+	void ReadScreenIntoBuffer (int width, int height, byte *buffer);  // (gaius)
+	void TraceRays (byte *buffer, renderView_t *ref);  // (gaius)
+	idVec3 trace (idVec3 rayorigin, idVec3 raydir, unsigned int depth);  // (gaius)
+        void InvertYAxisBuffer (int width, int height, byte *buffer);  // (gaius)
+
 public:
 	// renderer globals
 	bool					registered;		// cleared at shutdown, set at InitOpenGL
@@ -1038,6 +1046,7 @@ void R_DoneFreeType( void );
 void R_SetColorMappings( void );
 
 void R_ScreenShot_f( const idCmdArgs &args );
+void R_RT_ScreenShot_f( const idCmdArgs &args );  // (gaius)
 void R_StencilShot( void );
 
 bool R_CheckExtension( const char *name );

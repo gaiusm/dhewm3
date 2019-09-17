@@ -597,6 +597,7 @@ set(src_game
 	game/physics/Physics_Static.cpp
 	game/physics/Physics_StaticMulti.cpp
 	game/physics/Push.cpp
+	game/rt_module.cpp
 )
 
 set(src_d3xp

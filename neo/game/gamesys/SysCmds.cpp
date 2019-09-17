@@ -43,6 +43,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Misc.h"
 
 #include "SysCmds.h"
+#include "rt_module.h"
+
 
 /*
 ==================
@@ -709,6 +711,84 @@ void Cmd_SetViewpos_f( const idCmdArgs &args ) {
 
 	player->Teleport( origin, angles, NULL );
 }
+
+
+void WriteFrameShot (int windowWidth, int windowHeight,
+		     const char *fileName, byte *buffer)
+{
+  FILE *f = fopen (fileName, "w");
+  fprintf (f, "P6\n%d\n%d\n255\n", windowWidth, windowHeight);
+  fwrite (buffer, (size_t) (windowWidth * windowHeight), (size_t) 3, f);
+  fclose (f);
+}
+
+/*
+==================
+RT_TakeScreenshot  (gaius)
+==================
+*/
+
+void RT_TakeScreenshot (const char *fileName, renderView_t *view)
+{
+  byte *buffer = (byte *) malloc (3 * sizeof (byte) * view->height * view->width);
+
+  if (rt_world == NULL)
+    gameLocal.Printf ("rt_world is not configured yet!\n");
+  else
+    rt_world->traceRays (buffer, view);
+
+  WriteFrameShot (view->width, view->height, fileName, buffer);
+  free (buffer);
+}
+
+
+/*
+=================
+Cmd_RT_ScreenShot_f - takes a ray traced screenshot (gaius).
+=================
+*/
+
+void Cmd_RT_ScreenShot_f (const idCmdArgs &args)
+{
+  idVec3		origin;
+  idAngles	angles;
+  int			i;
+  idPlayer	*player;
+  idStr name;
+  int width = -1;
+  int height = -1;
+
+  player = gameLocal.GetLocalPlayer();
+  switch (args.Argc())
+    {
+    case 1:
+      name = "testing.pnm";
+      break;
+    case 3:
+      width = atoi (args.Argv (1));
+      height = atoi (args.Argv (2));
+      name = "testing.pnm";
+      break;
+    default:
+      // todo allow user to change width and height and filename
+      gameLocal.Printf ("usage: rt_screenshot\n       rt_screenshot <width> <height>\n");
+      return;
+    }
+  renderView_t *view = player->GetRenderView();
+  if (view == NULL)
+    gameLocal.Printf ("no player view!\n");
+  else
+    {
+      gameLocal.Printf( "(%s) %.1f\n", view->vieworg.ToString(), view->viewaxis[0].ToYaw ());
+      gameLocal.Printf( "%.1f  %.1f  %.1f\n",
+			view->viewaxis[0].ToYaw (),
+			view->viewaxis[1].ToYaw (),
+			view->viewaxis[2].ToYaw ());
+      RT_TakeScreenshot (name, view);
+      gameLocal.Printf ("wrote %s\n", name.c_str ());
+    }
+}
+
 
 /*
 =================
@@ -2327,6 +2407,7 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "where",					Cmd_GetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"prints the current view position" );
 	cmdSystem->AddCommand( "getviewpos",			Cmd_GetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"prints the current view position" );
 	cmdSystem->AddCommand( "setviewpos",			Cmd_SetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"sets the current view position" );
+	cmdSystem->AddCommand( "rt_screenshot", Cmd_RT_ScreenShot_f, CMD_FL_GAME, "generate a raytraced screenshot" );      // (gaius)
 	cmdSystem->AddCommand( "teleport",				Cmd_Teleport_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"teleports the player to an entity location", idGameLocal::ArgCompletion_EntityName );
 	cmdSystem->AddCommand( "trigger",				Cmd_Trigger_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"triggers an entity", idGameLocal::ArgCompletion_EntityName );
 	cmdSystem->AddCommand( "spawn",					Cmd_Spawn_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"spawns a game entity", idCmdSystem::ArgCompletion_Decl<DECL_ENTITYDEF> );

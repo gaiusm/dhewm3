@@ -48,6 +48,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Trigger.h"
 
 #include "Game_local.h"
+#include "rt_module.h"
+
 
 const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
 
@@ -960,6 +962,8 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	// load the collision map
 	collisionModelManager->LoadMap( mapFile );
 
+	rt_world->LoadMap (mapFile);  // gaius
+
 	numClients = 0;
 	numPyClients = 0;  // gaius
 
@@ -1284,6 +1288,7 @@ void idGameLocal::InitFromNewMap( const char *mapName, idRenderWorld *renderWorl
 	gameRenderWorld = renderWorld;
 	gameSoundWorld = soundWorld;
 
+	rt_module_init ();    /* gaius.  */
 	LoadMap( mapName, randseed );
 
 	InitScriptForMap();
@@ -4032,9 +4037,9 @@ idGameLocal::BloodSplat
 void idGameLocal::BloodSplat( const idVec3 &origin, const idVec3 &dir, float size, const char *material ) {
 	float halfSize = size * 0.5f;
 	idVec3 verts[] = {	idVec3( 0.0f, +halfSize, +halfSize ),
-						idVec3( 0.0f, +halfSize, -halfSize ),
-						idVec3( 0.0f, -halfSize, -halfSize ),
-						idVec3( 0.0f, -halfSize, +halfSize ) };
+				idVec3( 0.0f, +halfSize, -halfSize ),
+				idVec3( 0.0f, -halfSize, -halfSize ),
+				idVec3( 0.0f, -halfSize, +halfSize ) };
 	idTraceModel trm;
 	idClipModel mdl;
 	trace_t results;

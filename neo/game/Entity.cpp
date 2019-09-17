@@ -2985,7 +2985,7 @@ inflictor, attacker, dir, and point can be NULL for environmental effects
 ============
 */
 void idEntity::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir,
-					  const char *damageDefName, const float damageScale, const int location ) {
+		       const char *damageDefName, const float damageScale, const int location ) {
 	if ( !fl.takedamage ) {
 		return;
 	}
@@ -5205,8 +5205,14 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		gameLocal.BloodSplat( origin, dir, 64.0f, splat );
 	}
 
+#if 1
+	// (gaius) disabled this as we want to see the blood on the PythonBot.
+	// original comment below
+	// try diabling this sometime!
+
 	// can't see wounds on the player model in single player mode
 	if ( !( IsType( idPlayer::Type ) && !gameLocal.isMultiplayer ) ) {
+#endif
 		// place a wound overlay on the model
 		key = va( "mtr_wound_%s", materialType );
 		decal = spawnArgs.RandomPrefix( key, gameLocal.random );
@@ -5216,7 +5222,9 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		if ( *decal != '\0' ) {
 			ProjectOverlay( origin, dir, 20.0f, decal );
 		}
+#if 1
 	}
+#endif
 
 	// a blood spurting wound is added
 	key = va( "smoke_wound_%s", materialType );

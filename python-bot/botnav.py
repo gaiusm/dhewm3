@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (C) 2017
 #               Free Software Foundation, Inc.
@@ -33,7 +33,7 @@ infinity = 1000000
 #
 
 def error (message):
-    print "%s" % (message)
+    print("%s" % (message))
 
 
 class node:
@@ -64,18 +64,18 @@ class node:
     def getName (self):
         return self.name
     def addLength (self, toNode, length):
-        if self.neighbours.has_key (toNode):
+        if toNode in self.neighbours:
             error (self.name + " already knows about node: " + toNode)
         else:
             self.neighbours[toNode] = length
     def getLength (self, toNode):
-        if self.neighbours.has_key (toNode):
+        if toNode in self.neighbours:
             return self.neighbours[toNode]
         else:
             error (self.name + " does not know about node: " + toNode)
     def getNeighbours(self):
         l = []
-        for i, j in self.neighbours.iteritems ():
+        for i, j in self.neighbours.items ():
             l += [i]
         return l
 
@@ -99,7 +99,7 @@ class graph:
         return self.choices
     def addChoice (self, n):
         if (not (n in self.visited)) and (not (n in self.choices)):
-            print "adding node", n, "to choice list"
+            print("adding node", n, "to choice list")
             self.choices += [n]
     def addVisited (self, n):
         self.visited += [n]
@@ -135,7 +135,7 @@ class graph:
                 best = c
                 bi = i
         del self.choices[bi]
-        print "the best choice was", best, "with a cost of", theGraph.getNode (best).getDistanceFrom (source)
+        print("the best choice was", best, "with a cost of", theGraph.getNode (best).getDistanceFrom (source))
         return best
 
 
@@ -148,23 +148,23 @@ def findRoute (source, dest):
 
     theGraph.reset (source)
     while theGraph.getChoices() != []:
-        print "we have the following nodes to explore:", theGraph.getChoices()
+        print("we have the following nodes to explore:", theGraph.getChoices())
         u = theGraph.getBestChoice(source)
-        print "have chosen", u
-        print "visited the following:", theGraph.getVisited()
+        print("have chosen", u)
+        print("visited the following:", theGraph.getVisited())
         theGraph.addVisited(u)
-        print "node", u, "has neighbours", theGraph.getNode(u).getNeighbours()
+        print("node", u, "has neighbours", theGraph.getNode(u).getNeighbours())
         if u == dest:
-            print "found route, finishing"
+            print("found route, finishing")
             return True
         for v in theGraph.getNode(u).getNeighbours():
             theGraph.addChoice(v)
             alt = theGraph.getNode(u).getDistanceFrom(source) + theGraph.getLength(u, v)
             if alt < theGraph.getNode(v).getDistanceFrom(source):
-                print "found a better route to '", v, "' value", alt, "from '", source, "'",
-                print " the previous value was", theGraph.getNode(v).getDistanceFrom(source)
+                print("found a better route to '", v, "' value", alt, "from '", source, "'", end=' ')
+                print(" the previous value was", theGraph.getNode(v).getDistanceFrom(source))
                 theGraph.getNode(v).update(u, alt)
-    print "cannot find route between", source, "and", dest
+    print("cannot find route between", source, "and", dest)
     return False
 
 
@@ -175,20 +175,20 @@ def findRoute (source, dest):
 def displayRoute(source, dest):
     global theGraph
 
-    print "the route from", source, "to", dest
+    print("the route from", source, "to", dest)
     route = [dest]
     while dest != source:
-        print dest
+        print(dest)
         dest = theGraph.getNode(dest).getPrevious()
         route = [dest] + route
-    print route
+    print(route)
     total = 0
     if len(route)>1:
         p = route[0]
-        print "initially start at node '", p, "'"
+        print("initially start at node '", p, "'")
         for i in route[1:]:
             total += theGraph.getNode(i).getLength(p)
-            print "go to '", i, "' a distance of", theGraph.getNode(i).getLength(p), " running total", total
+            print("go to '", i, "' a distance of", theGraph.getNode(i).getLength(p), " running total", total)
             p = i
 
 #
@@ -200,7 +200,7 @@ def displayRoute(source, dest):
 def processLine(line):
     global theGraph
 
-    print line
+    print(line)
     uncomment = string.split(line, '#')
     words = string.split(string.lstrip(uncomment[0]))
     if len(words)>=2:

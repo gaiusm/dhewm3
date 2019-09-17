@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from array2d import array2d
 
 a = array2d (20, 10, ' ')
-print a.high ()
+print(a.high ())
 
 
 #
@@ -11,7 +11,7 @@ print a.high ()
 #
 
 def printf (format, *args):
-    print str(format) % args,
+    print(str(format) % args, end=' ')
 
 
 def dump ():
@@ -32,6 +32,6 @@ for j in range (a.high ()[1]):
     a.set (x, j, '#')
 
 a.set (x/2, y/2, '#')
-print len (a.get (x/2, y/2))
+print(len (a.get (x/2, y/2)))
 
 dump ()

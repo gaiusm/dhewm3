@@ -208,6 +208,8 @@ public:
 	void					SetWaitState( const char *_waitstate );
 	bool					AnimDone( int channel, int blendFrames ) const;
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
+	bool                            SetFootPrints (bool value);   // gaius
+	void AddFootPrint (void);  // gaius
 
 protected:
 	friend class			idAnimState;
@@ -239,6 +241,8 @@ protected:
 	jointHandle_t			soundJoint;
 
 	idIK_Walk				walkIK;
+	bool                            makeFootPrints;  // gaius
+	bool                            leftFoot;  // gaius
 
 	idStr					animPrefix;
 	idStr					painAnim;
