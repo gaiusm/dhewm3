@@ -597,17 +597,21 @@ class aas:
 
 
     #
-    #  lightDesc := 'LIGHT' 'AT' posDesc =:
+    #  lightDesc := 'LIGHT' 'AT' posDesc [ 'COLOUR' int int int ] [ 'ON' string ] =:
     #
 
     def lightDesc (self):
         self.expect ('LIGHT')
         self.expect ('AT')
         if self.posDesc ():
+            if self.expecting (['COLOUR']):
+                self.expect ('COLOUR')
+                self.colourDesc ()
             if self.expecting (['ON']):
                 self.lightOn ()
             else:
-                # default to MID light so add the light pillar
+                # defaults to MID light which creates a pillar
+                # and the bot needs to avoid it.
                 self._curRoom._addLight (curPos)
             return True
         else:
@@ -720,9 +724,25 @@ class aas:
             self.expect ('CEILING')
         elif self.expecting (['FLOOR']):
             self.expect ('FLOOR')
-        self.expect ('COLOUR')
         return self.colourDesc ()
 
+
+    #
+    #  defaultTextureConfig := "TEXTURE" ( "CEILING" | "FLOOR" | "WALL" ) string =:
+    #
+
+    def defaultTextureConfig (self):
+        self.expect ('TEXTURE')
+        if self.expecting (['COLOUR', 'FLOOR', 'WALL']):
+            if self.expecting (['COLOUR']):
+                self.expect ('COLOUR')
+            elif self.expecting (['FLOOR']):
+                self.expect ('FLOOR')
+            elif self.expecting (['WALL']):
+                self.expect ('WALL')
+            else:
+                self.errorLine ('expecting COLOUR or FLOOR or WALL')
+            texture = self.get ()
 
     #
     #  roomDesc := "ROOM" integer { doorDesc | wallDesc | treasureDesc | ammoDesc |

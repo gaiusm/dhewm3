@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd $HOME/Sandpit/git-doom3/pybot-dhewm3/python-bot
-python $*
+python3 $*
