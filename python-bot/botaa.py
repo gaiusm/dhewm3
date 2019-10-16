@@ -1040,14 +1040,6 @@ class aas:
         return None
 
 
-#
-#  intVec - return a vector of two integers.
-#
-
-def intVec (v):
-    return [int (v[0]), int (v[1])]
-
-
 def _runtests ():
     print("_runtests")
     m = aas (os.path.join (os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps"),
