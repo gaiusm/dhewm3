@@ -95,3 +95,14 @@ def equVec (a, b):
         if i != j:
             return False
     return True
+
+
+#
+#  intVec - for each element convert to integer.
+#
+
+def intVec (v):
+    r = []
+    for e in v:
+        r += [int (e)]
+    return r

@@ -532,18 +532,32 @@ class basic:
         return self.getEntityPos (self.getPairEntity ("classname", "info_player_start"))
 
     #
-    #  getEntityPos - returns coordinate representating the origin position of entity, i.
+    #  getEntityPos - returns coordinate representating the origin position of, entity.
     #
 
-    def getEntityPos (self, i):
+    def getEntityPos (self, entity):
         if debug_protocol:
-            print("requesting get_entity_pos", i)
-        l = "get_entity_pos %d\n" % (i)
+            print("requesting get_entity_pos", entity)
+        l = "get_entity_pos %d\n" % (entity)
         self.s.send (l.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
             print("doom returned", l)
         return tovecint (l)
+
+    #
+    #  getEntityName - returns the name string for, entity.
+    #
+
+    def getEntityName (self, entity):
+        if debug_protocol:
+            print("requesting get_entity_name", entity)
+        l = "get_entity_name %d\n" % (entity)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        return l
 
     #
     #  reset - does nothing and its only purpose is to provide a similar

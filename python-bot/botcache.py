@@ -288,3 +288,44 @@ class cache:
         if 'info_player_start' not in self._dict:
             self._dict['info_player_start'] = self._basic.getPlayerStart ()
         return self._dict['info_player_start']
+
+
+    #
+    #  getPairEntity - return the entiry number containing
+    #                  ("name", name)
+    #                  in the static doom3 map.
+    #
+
+    def getPairEntity (self, name):
+        if name not in self._dict:
+            self._dict[name] = self._basic.getPairEntity ("name", name)
+        return self._dict[name]
+
+
+    #
+    #  getEntityPos - return the spawn position of entity in the static doom3 map.
+    #                 The return result is a doom3 [x, y, z] coordinate.
+    #
+
+    def getEntityPos (self, entity):
+        name = "entity %d" % entity
+        if name not in self._dict:
+            self._dict[name] = self._basic.getEntityPos (entity)
+        return self._dict[name]
+
+    #
+    #  getSpawnPos - return the doom3 [x, y, z] of this bots spawn location.
+    #
+
+    def getSpawnPos (self):
+        return self.getEntityPos (self.me ())
+
+    #
+    #  getEntityName - returns the name string for, entity.
+    #
+
+    def getEntityName (self, entity):
+        name = "entity name %d" % entity
+        if name not in self._dict:
+            self._dict[name] = self._basic.getEntityName (entity)
+        return self._dict[name]

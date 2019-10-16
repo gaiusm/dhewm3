@@ -349,6 +349,7 @@ public:
 	const char *FindDefinition (const char *a);   // gaius
 	int FindEntityFromPair (const char *a, const char *b);  // gaius
 	int FindEntityFromName (const char *name);  // gaius
+	const char *GetEntityEntry (int id, const char *left); // gaius
 	void ShutdownPyBot (void);  // gaius
 #endif
 	void					Printf( const char *fmt, ... ) const id_attribute((format(printf,2,3)));

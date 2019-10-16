@@ -1019,12 +1019,25 @@ class aas:
     #
 
     def getPlayerStart (self):
-        for r in list(rooms.keys ()):
+        for r in list (rooms.keys ()):
             if rooms[r].worldspawn != []:
                 return rooms[r].worldspawn[0]
         print("the pen map should contain one worldspawn location")
         print("this needs to be fixed before area awareness makes any sence to the bot")
         return [1, 1]
+
+    #
+    #  getSpawnFromName - return the pen coordinates of the object called "name"
+    #                     in the pen map.  None is returned if the name
+    #                     does not exist in the pen map.
+    #
+
+    def getSpawnFromName (self, name):
+        for r in list (rooms.keys ()):
+            for m in rooms[r].pythonMonsters:
+                if name == m[0]:
+                    return m[1]
+        return None
 
 
 #
@@ -1040,7 +1053,7 @@ def _runtests ():
     m = aas (os.path.join (os.path.join (os.environ['HOME'], ".local/share/dhewm3/base/maps"),
                            "tiny.pen"))
     src = intVec (rooms['1'].pythonMonsters[0][1])
-    dest = intVec (rooms['3'].worldspawn[0])
+    dest = intVec (rooms['1'].worldspawn[0])
     m.printFloor (src, dest)
     c = m.calcnav (src, dest)
     printf ("cost = %d\n", c)

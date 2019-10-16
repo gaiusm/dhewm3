@@ -1337,7 +1337,7 @@ void forkScript (const char *name, int id)
 	    perror ("execl");
 	}
       else
-	/* add pid to list of pids and kill them off at the end of the game.  */
+	/* --fixme-- add pid to list of pids and kill them off at the end of the game.  */
 	;
     }
   else
@@ -1671,6 +1671,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcGetPairEntity (&data[21]);
   else if (idStr::Cmpn (data, "get_entity_pos ", 15) == 0)
     rpcGetEntityPos (&data[15]);
+  else if (idStr::Cmpn (data, "get_entity_name ", 16) == 0)
+    rpcGetEntityName (&data[16]);
   else if (idStr::Cmpn (data, "change_weapon ", 14) == 0)
     rpcChangeWeapon (&data[14]);
   else
@@ -2176,7 +2178,7 @@ void pyBotClass::rpcGetPairEntity (char *arg)
 void pyBotClass::rpcGetEntityPos (char *data)
 {
   if (protocol_debugging)
-    gameLocal.Printf ("rpcGetentityPos (%s) call by python\n", data);
+    gameLocal.Printf ("rpcGetEntityPos (%s) call by python\n", data);
 
   char buf[1024];
   int id = checkId (atoi (data));
@@ -2192,6 +2194,34 @@ void pyBotClass::rpcGetEntityPos (char *data)
     strcpy (buf, "error invalid id sent to getentitypos\n");
   if (protocol_debugging)
     gameLocal.Printf ("rpcGetEntityPos responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcGetEntityName - returns the name associated with the entity.
+ *                     This is not the "classname" but the "name" in the doom3 map file.
+ *                     The parameter, data, contains the entity number.
+ */
+
+void pyBotClass::rpcGetEntityName (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetEntityName (%s) call by python\n", data);
+
+  char buf[1024];
+  int id = checkId (atoi (data));
+
+  if (id >= 0)
+    {
+      idStr::snPrintf (buf, sizeof (buf), "%s\n",
+		       gameLocal.GetEntityEntry (id, "name"));
+    }
+  else
+    strcpy (buf, "error invalid id sent to getentityname\n");
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetEntityName responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }

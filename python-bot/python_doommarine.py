@@ -74,7 +74,7 @@ def moveTowards (i):
             print("cannot reach", i)
         b.turn (90, 1)
         b.select (["turn"])
-        b.forward (100, 100)
+        b.forward (100, 10)
         b.select (["move"])
     else:
         if debugTowards:
@@ -226,6 +226,7 @@ def botMain (b):
     # sys.exit (0)
 
     while True:
+        # b.face (1)
         findAll ()
         # guard_sentry (b)
 

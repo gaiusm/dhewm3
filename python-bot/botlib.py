@@ -35,6 +35,7 @@ from chvec import *
 from math import atan2, sqrt
 
 debugging = False
+debugBulk = True
 
 pen2doom3units = 48   # inches per ascii square
 angle_offset = 0
@@ -59,6 +60,31 @@ def incAngle (angle, inc):
     return angle
 
 
+#
+#  callScaleOffset - Pre-conditions:  pen0 and pen1 are pen coordinates
+#                                     doom0 and doom1 are doom3 coordinates.
+#                                     Two objects are specified in 0 and 1.
+#                    Post-condition:  this function returns the scaleX, offsetX
+#                                     and scaleY and offsetY to transform
+#                                     a coordinate in doom3 to a pen coordinate.
+#
+
+def calcScaleOffset (pen0, doom0, pen1, doom1):
+    diffPen = subVec (pen0, pen1)
+    print ("pen0 =", pen0)
+    print ("pen1 =", pen1)
+    print ("diffPen =", diffPen)
+    diffD3 = subVec (doom0, doom1)
+    print ("doom0 =", doom0)
+    print ("doom1 =", doom1)
+    print ("diffD3 =", diffD3)
+    scaleX = float (diffD3[0]) / float (diffPen[0])
+    scaleY = float (diffD3[1]) / float (diffPen[1])
+    offsetX = doom0[0] - float (pen0[0]) * scaleX
+    offsetY = doom0[1] - float (pen0[1]) * scaleX
+    return scaleX, offsetX, scaleY, offsetY
+
+
 class bot:
     #
     #  __init__ the constructor for bot class which
@@ -68,12 +94,25 @@ class bot:
     def __init__ (self, server, name):
         self._cache = cache (server, name)
         self._aas = aas (self.getPenMapName ())
-        initPosPen = self._aas.getPlayerStart ()
-        initPosD3 = self._cache.getPlayerStart ()
-        self._scaleX = float (pen2doom3units)
-        self._scaleY = float (pen2doom3units)
-        if debugging:
-            print("initPosPen =", initPosPen, "initPosD3 =", initPosD3)
+        self._id = self.me ()
+        spawnPenPlayer = intVec (self._aas.getPlayerStart ())
+        spawnD3Player = intVec (self._cache.getPlayerStart ())
+        spawnD3Python = intVec (self._cache.getSpawnPos ())
+        self._name = self._cache.getEntityName (self._id)
+        print ("self._name =", self._name)
+        print ("spawnD3Python =", spawnD3Python)
+        # spawnPenPython = self._aas.getSpawnFromName (self._name)
+        spawnPenPython = intVec (self._aas.getSpawnFromName ("python_doommarine_mp"))
+        print ("spawnPenPython =", spawnPenPython)
+        self._scaleX, self._offsetX, self._scaleY, self._offsetY = calcScaleOffset (spawnPenPlayer, spawnD3Player, spawnPenPython, spawnD3Python)
+        print (self._scaleX, self._offsetX, self._scaleY, self._offsetY)
+        print ("the doom3 coordinate", spawnD3Player, "really maps onto", spawnPenPlayer)
+        test = self.d2pv (spawnD3Player)
+        print ("  d2pv says", test)
+        print ("the doom3 coordinate", spawnD3Python, "really maps onto", spawnPenPython)
+        test = self.d2pv (spawnD3Python)
+        print ("  d2pv says", test)
+        # os.sys.exit (0)
 
 
     #
@@ -243,7 +282,7 @@ class bot:
         else:
             if debugging:
                 print("using atan2", end=' ')
-            angle = incAngle (int (atan2 (v[1], v[0]) * 180.0 / 3.1415927), 180)   # radians into degrees
+            angle = incAngle (int (atan2 (float (v[1]), float (v[0])) * 180.0 / 3.1415927), 180)   # radians into degrees
 
         if debugging:
             print("angle =", angle)
@@ -277,17 +316,23 @@ class bot:
 
 
     #
-    #  d2pv - convert a doom3 coordinate into a penguin tower coordinate.
-    #         converted vector is returned.
+    #  d2pv - convert a doom3 coordinate [x, y, z] into a penguin tower coordinate.
+    #         converted vector [p, q] is returned.
     #
 
     def d2pv (self, v):
         r = []
         if len (v) > 1:
-            r += [int (v[0]/(-pen2doom3units)) + 1]
-            r += [int (v[1]/(-pen2doom3units))]
-        print ("doom units, v =", v, "pen coord =", r)
-        return r
+            t = (float (v[0]) - self._offsetX) / self._scaleX
+            r = [t]
+            t = (float (v[1]) - self._offsetY) / self._scaleY
+            r += [t]
+        return intVec (r)
+
+
+    def midPen2Doom (self, p):
+        return [p[0] * pen2doom3units + pen2doom3units/2,
+                p[1] * pen2doom3units + pen2doom3units/2]
 
     #
     #  p2d - in:   a penguin tower unit.
@@ -441,11 +486,6 @@ class bot:
         self.select (["turn"])
 
 
-    def midPen2Doom (self, p):
-        return [p[0] * pen2doom3units + pen2doom3units/2,
-                p[1] * pen2doom3units + pen2doom3units/2]
-
-
     #
     #  ssNav - single square navigate, turn and move to position, h,
     #          which should be an adjacent square.
@@ -459,6 +499,7 @@ class bot:
         while (dist > 0) and (not equVec (h, mypos)):
             print("bot at", mypos, "trying to reach", h)
             mydoom = self.twoDdoom (self.getpos (self.me ()))
+            # hdoom = self.twoDdoom (self.midPen2Doom (h))
             hdoom = self.midPen2Doom (h)
             self.turnface (subVec (hdoom, mydoom))
             self.select (["turn"])
@@ -503,33 +544,33 @@ class bot:
         mypos = self.d2pv (self.getpos (self.me ()))
         d = 0
         dist = 0
-        if debugging:
+        if debugBulk:
             print("bot at", mypos, "trying to reach", h)
         mydoom = self.twoDdoom (self.getpos (self.me ()))
         hdoom = self.midPen2Doom (h)
         self.turnface (subVec (hdoom, mydoom))
         self.select (["turn"])
-        if debugging:
+        if debugBulk:
             print("completed turn along", subVec (h, mypos))
         d = self.p2d (noHops)/2
         # d = sqrt (sqr (mydoom[0] - hdoom[0]) + sqr (mydoom[1] - hdoom[1]))
         self.forward (vel, d)
         self.select (["move"])
-        if debugging:
+        if debugBulk:
             print("completed forward", d, "units")
         self.reset ()
         mypos = self.d2pv (self.getpos (self.me ()))
         if equVec (initpos, mypos):
-            if debugging:
+            if debugBulk:
                 print("not moved substantially")
             count += 1
             if count == 4:
-                if debugging:
+                if debugBulk:
                     print("stuck, try again")
                 self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
                 return 0
         dist += d
-        if debugging:
+        if debugBulk:
             if equVec (h, mypos):
                 print("bot has reached", h, "!!")
         return dist
@@ -541,6 +582,7 @@ class bot:
     def twoDdoom (self, v):
         if len (v) > 2:
             v = v[:2]
+        # return v
         return negVec (v)
 
 

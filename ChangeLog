@@ -1,3 +1,26 @@
+2018-09-26      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* neo/game/Game_local.cpp:  (GetEntityEntry) new method.
+	* neo/game/Game_local.h:  (GetEntityEntry) new method
+          declared.
+	* neo/game/ai/pybot.cpp:  improved comment.
+          (get_entity_name) new rpc added.
+          (rpcGetEntityName) new method.
+	* neo/game/ai/pybot.h:  rpcGetEntityName
+          new method declaration.
+	* python-bot/botaa.py:  (getSpawnFromName)
+          new method.  (getSpawnFromName) new method.
+	* python-bot/botbasic.py:  (getEntityPos) new method.
+          (getEntityName) new method.  (getPairEntity) new
+          method.  (getPairEntity) new method.
+          (getEntityPos) new method.  (getSpawnPos)
+          new method.  (getEntityName) new method.
+	* python-bot/botlib.py:  (callScaleOffset) new function.
+          (bot::__init__):  use setup scale factors and offset.
+          (d2pv) rewritten to use scale factors and offsets.
+	* python-bot/chvec.py:  (intVec) new function.
+	* neo/game/Game_local.cpp:  (GetEntityEntry) new method.
+
 2018-09-26      Gaius Mulley <gaius@gnu.org>
 
 	* neo/idlib/Heap.cpp:  allocate 8GB ram.

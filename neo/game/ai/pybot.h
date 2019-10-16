@@ -127,6 +127,7 @@ class pyBotClass
   void rpcGetPairEntity (char *arg);
   void rpcGetEntityPos (char *data);
   void rpcChangeWeapon (char *data);
+  void rpcGetEntityName (char *data);
   int instanceId;  // python class, instance id
   int rpcId;  // index into the rpc array
   char *name;

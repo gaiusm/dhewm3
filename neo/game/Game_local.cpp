@@ -911,6 +911,23 @@ int idGameLocal::FindEntityFromPair (const char *a, const char *b)
 
 
 /*
+ *  GetEntityEntry - return the right string paired with,
+ *                   entry (left, right) in the doom3 map.
+ *  (gaius)
+ */
+
+const char *idGameLocal::GetEntityEntry (int id, const char *left)
+{
+  idMapEntity *mapEnt = mapFile->GetEntity (id);
+
+  const char *def;
+  if (mapEnt->epairs.GetString (left, "", &def))
+    return def;
+  return "no entity pair found in doom3 map";
+}
+
+
+/*
  *  FindEntityFromName - return the entity number using, name.
  *  (gaius)
  */
