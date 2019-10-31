@@ -4,8 +4,9 @@ import botbasic, time, sys, os
 import botlib
 from chvec import *
 import math
+import random
 
-debugTowards = False
+debugTowards = True
 
 
 def walkSquare ():
@@ -65,7 +66,7 @@ def moveTowards (i):
     """
     if debugTowards:
         print("bot is at", b.d2pv (b.getpos (me)))
-        print("you are at", b.d2pv (b.getpos (you)))
+        print("you are at", b.d2pv (b.getpos (i)))
     d = b.calcnav (i)
     if debugTowards:
         print("object", i, "is", d, "units away")
@@ -96,8 +97,8 @@ def move_towards (b, pos, velocity):
     dist = b.calcnav_pos (pos)
     if dist is None:
         if debugTowards:
-           print("cannot reach", pos)
-        b.turn (90, 1)
+            print ("cannot reach", pos, "bot moving randomly")
+        b.turn (random.randint (-90, 90), 1)
         b.select (["turn"])
         b.forward (velocity, velocity)
         b.select (["move"])
@@ -226,8 +227,8 @@ def botMain (b):
     # sys.exit (0)
 
     while True:
-        # b.face (1)
-        findAll ()
+        b.face (1)
+        # findAll ()
         # guard_sentry (b)
 
 

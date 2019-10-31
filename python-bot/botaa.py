@@ -804,12 +804,15 @@ class aas:
 
     #
     #  checkLegal - pos is checked to make sure it is not on a wall.
+    #               Return True is ok, False if pos is on a wall.
     #
 
     def checkLegal (self, pos, message):
         if self._floor.get (pos[0], pos[1]) == '#':
             printf ("error %s position %s is a wall\n", message, pos)
-            sys.exit (1)
+            # sys.exit (1)
+            return False
+        return True
 
     #
     #  calcnav - calculate the navigation route between us and object, d.
@@ -830,8 +833,8 @@ class aas:
         self._setCostRoute (src, 1, src)
         self._visited = []
         # drPrintf ("src = %s, dest = %s\n", src, dest)
-        self.checkLegal (src, "source")
-        self.checkLegal (dest, "destination")
+        if (not self.checkLegal (src, "source")) or (not self.checkLegal (dest, "destination")):
+            return None
         if equVec (src, dest):
             self._route = [dest]
             return 0

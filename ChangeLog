@@ -1,3 +1,12 @@
+2019-10-31      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* python-bot/botaa.py:  changed to allow random walking if
+	  navigation fails.
+	* python-bot/botlib.pychanged to allow random walking if
+	  navigation fails.
+	* python-bot/python_doommarine.py:  changed to allow random
+          walking if navigation fails.
+
 2019-10-16      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* neo/game/Game_local.cpp:  (GetEntityEntry) new method.

@@ -85,6 +85,16 @@ def calcScaleOffset (pen0, doom0, pen1, doom1):
     return scaleX, offsetX, scaleY, offsetY
 
 
+#
+#  signOf - if X is positive return 1 else return -1.
+#
+
+def signOf (x):
+    if x >= 0:
+        return 1
+    return -1
+
+
 class bot:
     #
     #  __init__ the constructor for bot class which
@@ -107,6 +117,9 @@ class bot:
         self._scaleX, self._offsetX, self._scaleY, self._offsetY = calcScaleOffset (spawnPenPlayer, spawnD3Player, spawnPenPython, spawnD3Python)
         print (self._scaleX, self._offsetX, self._scaleY, self._offsetY)
         print ("the doom3 coordinate", spawnD3Player, "really maps onto", spawnPenPlayer)
+        self._scale2DX = signOf (self._scaleX)
+        self._scale2DY = signOf (self._scaleY)
+        print ("the 2D doom scale units are", self._scale2DX, "and", self._scale2DY)
         test = self.d2pv (spawnD3Player)
         print ("  d2pv says", test)
         print ("the doom3 coordinate", spawnD3Python, "really maps onto", spawnPenPython)
@@ -235,6 +248,8 @@ class bot:
     #            object, d, assuming this route was followed.  Notice
     #            this is not the same as a line of sight distance.
     #            The distance returned is in penguin tower units.
+    #            None is returned if the bot is unable to find a route
+    #            (or it considers itself on a wall).
     #
 
     def calcnav (self, d):
@@ -251,7 +266,8 @@ class bot:
     #                It returns the total distance between ourself and
     #                dest, assuming this route was followed.  Notice
     #                this is not the same as a line of sight distance.
-    #                The distance returned is in penguin tower units.
+    #                The distance returned is in penguin tower units
+    #                or None is returned if the bot considers itself to be on a wall.
     #
 
     def calcnav_pos (self, dest):
@@ -331,8 +347,8 @@ class bot:
 
 
     def midPen2Doom (self, p):
-        return [p[0] * pen2doom3units + pen2doom3units/2,
-                p[1] * pen2doom3units + pen2doom3units/2]
+        return [p[0] * pen2doom3units + self._scale2DX * pen2doom3units/2,
+                p[1] * pen2doom3units + self._scale2DY * pen2doom3units/2]
 
     #
     #  p2d - in:   a penguin tower unit.
@@ -576,14 +592,13 @@ class bot:
         return dist
 
     #
-    #
+    #  twoDdoom - returns a 2D coordinate pair which has the precision of the doom3 coordinates (for X and Y)
+    #             but the axis is transformed to the same direction as the penguin tower coordinates.
     #
 
     def twoDdoom (self, v):
-        if len (v) > 2:
-            v = v[:2]
-        # return v
-        return negVec (v)
+        assert (len (v) >= 2)
+        return [v[0] * self._scale2DX, v[1] * self._scale2DY]
 
 
     #
