@@ -291,26 +291,26 @@ class cache:
 
 
     #
-    #  getPairEntity - return the entiry number containing
-    #                  ("name", name)
-    #                  in the static doom3 map.
+    #  getEntityNo - return the entity number which contains the
+    #                pair of strings left, right.
     #
 
-    def getPairEntity (self, name):
+    def getEntityNo (self, left, right):
+        name = "entitynamed %s %s" % (left, right)
         if name not in self._dict:
-            self._dict[name] = self._basic.getPairEntity ("name", name)
+            self._dict[name] = self._basic.getEntityNo (left, right)
         return self._dict[name]
 
 
     #
-    #  getEntityPos - return the spawn position of entity in the static doom3 map.
+    #  getEntityPos - return the spawn position of entity_no in the static doom3 map.
     #                 The return result is a doom3 [x, y, z] coordinate.
     #
 
-    def getEntityPos (self, entity):
-        name = "entity %d" % entity
+    def getEntityPos (self, entity_no):
+        name = "entity %d" % entity_no
         if name not in self._dict:
-            self._dict[name] = self._basic.getEntityPos (entity)
+            self._dict[name] = self._basic.getEntityPos (entity_no)
         return self._dict[name]
 
     #
@@ -321,11 +321,11 @@ class cache:
         return self.getEntityPos (self.me ())
 
     #
-    #  getEntityName - returns the name string for, entity.
+    #  getEntityName - returns the name string for, entity_no.
     #
 
-    def getEntityName (self, entity):
-        name = "entity name %d" % entity
+    def getEntityName (self, entity_no):
+        name = "entity name %d" % entity_no
         if name not in self._dict:
-            self._dict[name] = self._basic.getEntityName (entity)
+            self._dict[name] = self._basic.getEntityName (entity_no)
         return self._dict[name]

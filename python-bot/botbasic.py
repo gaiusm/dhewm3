@@ -510,11 +510,11 @@ class basic:
         return int (l)
 
     #
-    #  getPairEntity - return the entity contain the pair of strings.
-    #                  left, right.
+    #  getEntityNo - return the entity number which contains the
+    #                pair of strings left, right.
     #
 
-    def getPairEntity (self, left, right):
+    def getEntityNo (self, left, right):
         if debug_protocol:
             print("requesting get_pair_name_entity", left, right)
         l = "get_pair_name_entity %s %s\n" % (left, right)
@@ -529,7 +529,7 @@ class basic:
     #
 
     def getPlayerStart (self):
-        return self.getEntityPos (self.getPairEntity ("classname", "info_player_start"))
+        return self.getEntityPos (self.getEntityNo ("classname", "info_player_start"))
 
     #
     #  getEntityPos - returns coordinate representating the origin position of, entity.
@@ -546,18 +546,20 @@ class basic:
         return tovecint (l)
 
     #
-    #  getEntityName - returns the name string for, entity.
+    #  getEntityName - returns the name string for, entity_no.
     #
 
-    def getEntityName (self, entity):
-        if debug_protocol:
-            print("requesting get_entity_name", entity)
-        l = "get_entity_name %d\n" % (entity)
-        self.s.send (l.encode ('utf-8'))
-        l = self.getLine ()
-        if debug_protocol:
-            print("doom returned", l)
-        return l
+    def getEntityName (self, entity_no):
+        if entity_no >= 0:
+            if debug_protocol:
+                print("requesting get_entity_name", entity_no)
+            l = "get_entity_name %d\n" % (entity_no)
+            self.s.send (l.encode ('utf-8'))
+            l = self.getLine ()
+            if debug_protocol:
+                print("doom returned", l)
+            return l
+        return None
 
     #
     #  reset - does nothing and its only purpose is to provide a similar
@@ -572,4 +574,4 @@ class basic:
     #
 
     def allobj (self):
-        return list(range(1, self.maxobj () + 1))
+        return list (range (1, self.maxobj () + 1))

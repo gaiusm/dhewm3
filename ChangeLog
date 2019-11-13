@@ -1,5 +1,14 @@
 2019-10-31      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
+	* python-bot/botaa.py:  grammar extended to include labels.
+	* python-bot/botbasic.py:  tidied up entity API
+        * python-bot/botcache.py:  tidied up entity API
+	* python-bot/botlib.py:  tidied up entity API
+	* python-bot/python_doommarine.py:  bot finds a label and the
+	  labels doom coordinate.
+
+2019-10-31      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
 	* python-bot/botaa.py:  changed to allow random walking if
 	  navigation fails.
 	* python-bot/botlib.pychanged to allow random walking if

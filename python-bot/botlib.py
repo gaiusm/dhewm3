@@ -81,7 +81,7 @@ def calcScaleOffset (pen0, doom0, pen1, doom1):
     scaleX = float (diffD3[0]) / float (diffPen[0])
     scaleY = float (diffD3[1]) / float (diffPen[1])
     offsetX = doom0[0] - float (pen0[0]) * scaleX
-    offsetY = doom0[1] - float (pen0[1]) * scaleX
+    offsetY = doom0[1] - float (pen0[1]) * scaleY
     return scaleX, offsetX, scaleY, offsetY
 
 

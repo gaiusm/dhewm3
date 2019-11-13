@@ -67,6 +67,7 @@ class roomInfo:
         self.ammo = []
         self.lights = []
         self.worldspawn = []
+        self.labels = {}
     def _addWall (self, line):
         global maxx, maxy
         line = toLine (line)
@@ -89,6 +90,9 @@ class roomInfo:
         self.monsters += [[monType, pos]]
     def _addPlayerSpawn (self, pos):
         self.worldspawn += [pos]
+    def _addLabel (self, label, pos):
+        self.labels[label] = pos
+        print ("all labels =", self.labels)
 
 
 #
@@ -580,6 +584,22 @@ class aas:
             self.errorLine ('expecting an amount of ammo')
 
     #
+    #  labelDesc := 'LABEL' 'AT' posDesc string =:
+    #
+
+    def labelDesc (self):
+        self.expect ('LABEL')
+        self.expect ('AT')
+        if self.posDesc ():
+            labelPos = curPos
+            label = self.get ()
+            self._curRoom._addLabel (label, curPos)
+            return True
+        else:
+            errorLine ('expecting a position for a label')
+            return False
+
+    #
     #  lightOn := 'ON' type =:
     #
 
@@ -746,8 +766,8 @@ class aas:
 
     #
     #  roomDesc := "ROOM" integer { doorDesc | wallDesc | treasureDesc | ammoDesc |
-    #                     lightDesc | insideDesc | weaponDesc | monsterDesc |
-    #                     spawnDesc | defaultDesc | soundDesc } =:
+    #                     lightDesc | insideDesc | weaponDesc | labelDesc |
+    #                     monsterDesc | spawnDesc | defaultDesc | soundDesc } =:
     #
 
     def roomDesc (self):
@@ -758,7 +778,7 @@ class aas:
                 self._curRoom = newRoom (self._curRoomNo)
                 if self._verbose:
                     printf ("roomDesc: %d\n", curRoomNo)
-                while self.expecting (['DOOR', 'WALL', 'TREASURE', 'AMMO', 'WEAPON', 'LIGHT', 'MONSTER', 'SPAWN', 'INSIDE', 'DEFAULT', 'SOUND']):
+                while self.expecting (['DOOR', 'WALL', 'TREASURE', 'AMMO', 'WEAPON', 'LABEL', 'LIGHT', 'MONSTER', 'SPAWN', 'INSIDE', 'DEFAULT', 'SOUND']):
                     if self.expecting (['DOOR']):
                         self.doorDesc ()
                     elif self.expecting (['WALL']):
@@ -769,6 +789,8 @@ class aas:
                         self.ammoDesc ()
                     elif self.expecting (['WEAPON']):
                         self.weaponDesc ()
+                    elif self.expecting (['LABEL']):
+                        self.labelDesc ()
                     elif self.expecting (['LIGHT']):
                         self.lightDesc ()
                     elif self.expecting (['WEAPON']):

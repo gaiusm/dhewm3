@@ -226,6 +226,17 @@ def botMain (b):
     print ("pos = ", pos, "pen coords =", pen)
     # sys.exit (0)
 
+    ###
+    #    an ugly hack to test entity label lookup
+    ###
+    label_entity_no = b._cache.getEntityNo ("label", "the_ammo_loc")
+    print ("entity number of label =", label_entity_no)
+    print ("entity position =", b._cache.getEntityPos (label_entity_no))
+    ###
+    #    end of an ugly hack to test entity label lookup
+    ###
+    print ("finishing now")
+    sys.exit (0)
     while True:
         b.face (1)
         # findAll ()
