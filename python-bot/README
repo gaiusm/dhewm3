@@ -1,0 +1,11 @@
+Currently the scripts
+
+python_doommarine.py
+   faces the human player
+
+python_doommarine_lookup_label.py
+   looks up the label and exits
+
+python_doommarine_find_label.py
+   looks up the label and moves towards the label if it sees the label
+   If it cannot see the label it faces the human player.

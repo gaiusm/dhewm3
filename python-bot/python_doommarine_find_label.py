@@ -221,11 +221,29 @@ def botMain (b):
     print("yes")
     print("the python marine id is", me)
 
-    pos = b.getpos (me)
-    pen = b.d2pv (pos)
-    print ("pos = ", pos, "pen coords =", pen)
+    #    an ugly hack to test entity label lookup
+    label_entity_map = b._cache.getEntityNo ("label", "the_ammo_loc")
+    print ("map entity number of label =", label_entity_map)
+    print ("map entity position =", b._cache.getEntityPos (label_entity_map))
+    #    end of an ugly hack to test entity label lookup
     while True:
-        b.face (1)
+        print ("map label", label_entity_map)
+        label_entity_no = b._cache._basic.mapToRunTimeEntity (label_entity_map)
+        print ("runtime entity label", label_entity_no)
+        b._cache.reset ()
+        print ("can I see", label_entity_no, "?")
+        if b.isvisible (label_entity_no):
+            print ("yes I can see the label")
+            b.face (label_entity_no)
+            print ("moving towards the label")
+            moveTowards (label_entity_no)
+            time.sleep (5)
+            moveTowards (1)
+            time.sleep (5)
+        else:
+            print ("no I cannot")
+            b.face (1)   # turn towards human player
+        time.sleep (1)
         # findAll ()
         # guard_sentry (b)
 

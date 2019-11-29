@@ -1,3 +1,8 @@
+2019-11-29      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* added new test scripts which lookup labels and
+          make the python bot move towards the label.
+
 2019-10-31      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* python-bot/botaa.py:  grammar extended to include labels.
