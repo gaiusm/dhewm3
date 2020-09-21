@@ -1,3 +1,9 @@
+2020-09-21      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* rebased pybot-dhewm3 upon dhewm3.
+	* also added the ability of the bot to test whether it
+	can see entities.
+
 2019-11-29      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* added new test scripts which lookup labels and

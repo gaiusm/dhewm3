@@ -1571,6 +1571,13 @@ void idPlayer::Spawn( void ) {
 			cursor = uiManager->FindGui( temp, true, gameLocal.isMultiplayer, gameLocal.isMultiplayer );
 		}
 		if ( cursor ) {
+			// DG: make it scale to 4:3 so crosshair looks properly round
+			//     yes, like so many scaling-related things this is a bit hacky
+			//     and note that this is special cased in StateChanged and you
+			//     can *not* generally set windowDef properties like this.
+			cursor->SetStateBool("scaleto43", true);
+			cursor->StateChanged(gameLocal.time); // DG end
+
 			cursor->Activate( true, gameLocal.time );
 		}
 
@@ -2148,6 +2155,13 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadObject( reinterpret_cast<idClass *&>( focusVehicle ) );
 	savefile->ReadUserInterface( cursor );
 
+	// DG: make it scale to 4:3 so crosshair looks properly round
+	//     yes, like so many scaling-related things this is a bit hacky
+	//     and note that this is special cased in StateChanged and you
+	//     can *not* generally set windowDef properties like this.
+	cursor->SetStateBool("scaleto43", true);
+	cursor->StateChanged(gameLocal.time); // DG end
+
 	savefile->ReadInt( oldMouseX );
 	savefile->ReadInt( oldMouseY );
 
@@ -2185,6 +2199,13 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
+
+	// DG: workaround for lingering messages that are shown forever after loading a savegame
+	//     (one way to get them is saving again, while the message from first save is still
+	//      shown, and then load)
+	if ( hud ) {
+		hud->SetStateString( "message", "" );
+	}
 }
 
 /*
@@ -6685,12 +6706,52 @@ void idPlayer::LookAtKiller( idEntity *inflictor, idEntity *attacker ) {
 
 
 /*
- *  idPlayer::isVisible - can we see enemy via line of sight?
+ *  idPlayer::isVisible - can we see the entity via line of sight?
  */
 
-bool idPlayer::isVisible (idEntity *enemy)
+bool idPlayer::isVisible (idEntity *ent)
 {
-  return CanSee (enemy, true);
+  return CanSee (ent, true);
+}
+
+
+/*
+ *  idPlayer::isVisible - can we see the entity via line of sight?
+ */
+
+bool idPlayer::isVisible (int entNo)
+{
+#if 0
+  idEntity *ent = NULL;
+
+  for (int i = 0; i < gameLocal.num_entities; i++)
+    {
+      if (gameLocal.entities[i] != NULL
+	  && gameLocal.entities[i]->entityNumber == entNo)
+	{
+	  ent = gameLocal.entities[i];
+	  if (CanSee (ent, true))
+	    return true;
+	}
+    }
+  return false;
+#endif
+
+#if 1
+#if 1
+  // enabled!
+  if (gameLocal.num_entities > entNo)
+    return CanSee (gameLocal.entities[entNo], true);
+  return false;
+#else
+    if (entNo >= 0)
+    {
+      const idVec3 &org = gameLocal.GetEntityOrigin (entNo);
+      return PointVisible (org);
+    }
+  return false;
+#endif
+#endif
 }
 
 

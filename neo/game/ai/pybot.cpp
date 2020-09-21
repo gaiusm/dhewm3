@@ -25,7 +25,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 
-Author:  Gaius Mulley  <gaius@gnu.org>
+Author:  Gaius Mulley  <gaius.mulley@southwales.ac.uk>
 */
 
 #define PYBOT_C
@@ -61,7 +61,7 @@ Author:  Gaius Mulley  <gaius@gnu.org>
 #include "Trigger.h"
 #include "Game_local.h"
 
-const bool debugging = true;
+const bool debugging = false;
 const bool protocol_debugging = false;
 
 #define S(x) #x
@@ -94,6 +94,7 @@ static void localExit (int code)
 static int superServerPort = 7000;
 
 static pyServerClass *super = NULL;
+static unsigned int maxId = 0;
 
 
 char *getHome (void)
@@ -137,6 +138,7 @@ class item
   void select (int mask);
   int getInstanceId (void);
   const char *getName (void);
+  bool canSeeEntity (int entNo);
 
  private:
   enum {item_none, item_monster, item_player, item_ammo} kind;
@@ -442,6 +444,22 @@ int item::angle (void)
 }
 
 
+bool item::canSeeEntity (int entNo)
+{
+  switch (kind)
+    {
+    case item_monster:
+      assert (false);
+      return false;   // not finished
+      break;
+    case item_player:
+      return idplayer->isVisible (entNo);
+    }
+  assert (false);
+  return false;
+}
+
+
 /*
  *  reload_weapon
  */
@@ -513,6 +531,7 @@ class dict
   int getHigh (void);
   int weapon (int id, int new_weapon);
   int determineInstanceId (const char *name);
+  bool canSeeEntity (int id, int entNo);
  private:
   item *entry[MAX_ENTRY];
   int high;
@@ -703,7 +722,10 @@ int dict::angle (int id)
 
 bool dict::aim (int id, int enemy)
 {
-  return entry[id]->aim (entry[enemy]->getIdEntity ());
+  if (enemy <= maxId)
+    return entry[id]->aim (entry[enemy]->getIdEntity ());
+  else
+    return entry[id]->aim (gameLocal.GetEntity (enemy));
 }
 
 
@@ -749,6 +771,15 @@ int dict::getHigh (void)
   return high-1;
 }
 
+
+/*
+ *  canSeeEntity - returns true if bot id can see entity entNo.
+ */
+
+bool dict::canSeeEntity (int id, int entNo)
+{
+  return entry[id]->canSeeEntity (entNo);
+}
 
 static dict *dictionary = NULL;
 
@@ -1392,6 +1423,8 @@ pyBotClass *doRegisterName (const char *name, int instance, int rid)
   b->setInstanceId (instance);
   b->setRpcId (rid);
   gameLocal.Printf ("registerName completing after successfully connecting with the script '%s' instance %d\n", name, instance);
+  if (rid > maxId)
+    maxId = rid;
   return b;
 }
 
@@ -1661,8 +1694,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcTurn (&data[5]);
   else if (strcmp (data, "angle") == 0)
     rpcAngle ();
-  else if (strcmp (data, "penmap") == 0)
-    rpcPenMap ();
+  else if (idStr::Cmpn (data, "tag ", 4) == 0)
+    rpcTag (&data[4]);
   else if (idStr::Cmpn (data, "select ", 7) == 0)
     rpcSelect (&data[7]);
   else if (idStr::Cmpn (data, "get_class_name_entity ", 22) == 0)
@@ -1675,6 +1708,10 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcGetEntityName (&data[16]);
   else if (idStr::Cmpn (data, "change_weapon ", 14) == 0)
     rpcChangeWeapon (&data[14]);
+  else if (idStr::Cmpn (data, "can_see_entity ", 15) == 0)
+    rpcCanSeeEntity (&data[15]);
+  else if (idStr::Cmpn (data, "map_to_runtime_entity ", 21) == 0)
+    rpcMapToRunTimeEntity (&data[21]);
   else
     {
       gameLocal.Printf ("data = \"%s\", len (data) = %d\n", data, (int) strlen (data));
@@ -1716,12 +1753,26 @@ void pyBotClass::rpcGetPos (char *data)
 
   if (id > 0)
     {
-      const idVec3 &org = dictionary->getPos (id);
-      idStr::snPrintf (buf, sizeof (buf), "%g %g %g\n",
-		       org.x, org.y, org.z);
+      if (id <= maxId)
+	{
+	  /* A pybot or human player.  */
+	  const idVec3 &org = dictionary->getPos (id);
+	  idStr::snPrintf (buf, sizeof (buf), "%g %g %g\n",
+			   org.x, org.y, org.z);
+	}
+      else
+	if (id < gameLocal.num_entities)
+	  {
+	    /* A doom3 entity.  */
+	    const idVec3 &org = gameLocal.entities[id]->GetPhysics ()->GetOrigin ();
+	    idStr::snPrintf (buf, sizeof (buf), "%g %g %g\n",
+			     org.x, org.y, org.z);
+	  }
+      	else
+	  strcpy (buf, "None\n");
     }
   else
-    strcpy (buf, "error invalid id sent to getpos\n");
+    strcpy (buf, "None\n");
   if (protocol_debugging)
     gameLocal.Printf ("rpcGetPos responding with: %s\n", buf);
   buffer.pyput (buf);
@@ -1977,17 +2028,37 @@ void pyBotClass::rpcTurn (char *data)
 
 
 /*
- *  rpcPenMap - request the pen mapname.
+ *  truncstr - truncates string name by assigning (char)0 to every space or \n.
  */
 
-void pyBotClass::rpcPenMap (void)
+char *pyBotClass::truncstr (char *name)
+{
+  int i = 0;
+  int l = strlen (name);
+
+  while (i < l)
+    {
+      if ((name[i] == ' ') || (name[i] == '\n'))
+        name[i] = (char)0;
+      i++;
+    }
+  return name;
+}
+
+
+/*
+ *  rpcTag - request the tag definition of name from the .map file.
+ */
+
+void pyBotClass::rpcTag (char *name)
 {
   char buf[1024];
 
+  name = truncstr (name);
   if (protocol_debugging)
-    gameLocal.Printf ("rpcPenMap called by python\n");
+    gameLocal.Printf ("rpcTag %s called by python\n", name);
 
-  const char *p = gameLocal.FindDefinition ("penmap");
+  const char *p = gameLocal.FindDefinition (name);
   if (p == NULL)
     strcpy (buf, "\n");
   else
@@ -2246,6 +2317,57 @@ void pyBotClass::rpcChangeWeapon (char *data)
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
   if (protocol_debugging)
     gameLocal.Printf ("rpcChangeWeapon responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcCanSeeEntity - returns 1 if this bot can see entity, entNo,
+ *                    returns 0 otherwise.
+ */
+
+void pyBotClass::rpcCanSeeEntity (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcCanSeeEntity (%s) call by python\n", data);
+
+  char buf[1024];
+  int entNo = atoi (data);
+  int result = 0;
+
+  if (entNo >= 0)
+    result = dictionary->canSeeEntity (rpcId, entNo);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcCanSeeEntity responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcMapToRunTimeEntity - given a string containing a decimal number which
+ *                          represents the index into the static entity map file.
+ *                          Return an index into the dynamic runtime entity array
+ *                          which represents the same entity values.
+ */
+
+void pyBotClass::rpcMapToRunTimeEntity (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcMapToRunTimeEntity (%s) call by python\n", data);
+
+  char buf[1024];
+  int entNo = atoi (data);
+  int result = 0;
+
+  result = entNo;
+  if (entNo >= 0)
+    result = gameLocal.MapToRunTimeEntity (entNo);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcMapToRunTimeEntity responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }

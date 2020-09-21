@@ -36,12 +36,22 @@ If you have questions concerning this license or the applicable additional terms
 
 #if defined(__AROS__)
 #define GAME_NAME						"ADoom3"		// appears on window titles and errors
-#define ENGINE_VERSION					"dhewm3 1.4.1"	// printed in console
 #define CONFIG_FILE						"adoom3.cfg"
 #else
 #define GAME_NAME						"dhewm 3"		// appears on window titles and errors
+#endif
 
-#define ENGINE_VERSION					"dhewm 3 1.4.1"	// printed in console
+#define ENGINE_VERSION					"dhewm3 1.5.1rc2"	// printed in console
+
+#ifdef ID_REPRODUCIBLE_BUILD
+	// for reproducible builds we hardcode values that would otherwise come from __DATE__ and __TIME__
+	// NOTE: remember to update esp. the date for (pre-) releases and RCs and the like
+	#define ID__DATE__  "Jul 21 2020"
+	#define ID__TIME__  "13:37:42"
+
+#else // not reproducible build, use __DATE__ and __TIME__ macros
+	#define ID__DATE__  __DATE__
+	#define ID__TIME__  __TIME__
 #endif
 
 // paths
@@ -98,7 +108,9 @@ If you have questions concerning this license or the applicable additional terms
 #define WIN32_CONSOLE_CLASS				"dhewm 3 WinConsole"
 
 // Linux info
+#ifndef LINUX_DEFAULT_PATH // allow overriding it from the build system with -DLINUX_DEFAULT_PATH="/bla/foo/whatever"
 #define LINUX_DEFAULT_PATH				"/usr/local/games/doom3"
+#endif
 
 // CD Key file info
 // goes into BASE_GAMEDIR whatever the fs_game is set to

@@ -49,6 +49,7 @@ extern idCVar	g_bloodEffects;
 extern idCVar	g_gore;
 extern idCVar	g_projectileLights;
 extern idCVar	g_doubleVision;
+extern idCVar	g_hitEffect;
 extern idCVar	g_muzzleFlash;
 
 extern idCVar	g_disasm;

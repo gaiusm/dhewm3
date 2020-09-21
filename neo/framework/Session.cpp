@@ -48,7 +48,7 @@ If you have questions concerning this license or the applicable additional terms
 idCVar	idSessionLocal::com_showAngles( "com_showAngles", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar	idSessionLocal::com_minTics( "com_minTics", "1", CVAR_SYSTEM, "" );
 idCVar	idSessionLocal::com_showTics( "com_showTics", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
-idCVar	idSessionLocal::com_fixedTic( "com_fixedTic", "0", CVAR_SYSTEM | CVAR_INTEGER, "", 0, 10 );
+idCVar	idSessionLocal::com_fixedTic( "com_fixedTic", "0", CVAR_SYSTEM | CVAR_INTEGER | CVAR_ARCHIVE, "", -1, 10 );
 idCVar	idSessionLocal::com_showDemo( "com_showDemo", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar	idSessionLocal::com_skipGameDraw( "com_skipGameDraw", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar	idSessionLocal::com_aviDemoSamples( "com_aviDemoSamples", "16", CVAR_SYSTEM, "" );
@@ -373,6 +373,8 @@ idSessionLocal::idSessionLocal() {
 		= guiTest = guiMsg = guiMsgRestore = guiTakeNotes = NULL;
 
 	menuSoundWorld = NULL;
+
+	demoversion=false;
 
 	Clear();
 }
@@ -1236,7 +1238,14 @@ void idSessionLocal::MoveToNewMap( const char *mapName ) {
 
 	if ( !mapSpawnData.serverInfo.GetBool("devmap") ) {
 		// Autosave at the beginning of the level
-		SaveGame( GetAutoSaveName( mapName ), true );
+
+		// DG: set an explicit savename to avoid problems with autosave names
+		//     (they were translated which caused problems like all alpha labs parts
+		//      getting the same filename in spanish, probably because the strings contained
+		//      dots and everything behind them was cut off as "file extension".. see #305)
+		idStr saveFileName = "Autosave_";
+		saveFileName += mapName;
+		SaveGame( GetAutoSaveName( mapName ), true, saveFileName );
 	}
 
 	SetGUI( NULL, NULL );
@@ -1926,13 +1935,15 @@ void idSessionLocal::ScrubSaveGameFileName( idStr &saveFileName ) const {
 idSessionLocal::SaveGame
 ===============
 */
-bool idSessionLocal::SaveGame( const char *saveName, bool autosave ) {
+bool idSessionLocal::SaveGame( const char *saveName, bool autosave, const char* saveFileName ) {
 #ifdef	ID_DEDICATED
 	common->Printf( "Dedicated servers cannot save games.\n" );
 	return false;
 #else
 	int i;
-	idStr gameFile, previewFile, descriptionFile, mapName;
+	idStr previewFile, descriptionFile, mapName;
+	// DG: support setting an explicit savename to avoid problems with autosave names
+	idStr gameFile = (saveFileName != NULL) ? saveFileName : saveName;
 
 	if ( !mapSpawned ) {
 		common->Printf( "Not playing a game.\n" );
@@ -1963,7 +1974,6 @@ bool idSessionLocal::SaveGame( const char *saveName, bool autosave ) {
 	}
 
 	// setup up filenames and paths
-	gameFile = saveName;
 	ScrubSaveGameFileName( gameFile );
 
 	gameFile = "savegames/" + gameFile;
@@ -2548,11 +2558,17 @@ void idSessionLocal::UpdateScreen( bool outOfSequence ) {
 idSessionLocal::Frame
 ===============
 */
+extern bool CheckOpenALDeviceAndRecoverIfNeeded();
 void idSessionLocal::Frame() {
 
 	if ( com_asyncSound.GetInteger() == 0 ) {
-		soundSystem->AsyncUpdate( Sys_Milliseconds() );
+		soundSystem->AsyncUpdateWrite( Sys_Milliseconds() );
 	}
+
+	// DG: periodically check if sound device is still there and try to reset it if not
+	//     (calling this from idSoundSystem::AsyncUpdate(), which runs in a separate thread
+	//      by default, causes a deadlock when calling idCommon->Warning())
+	CheckOpenALDeviceAndRecoverIfNeeded();
 
 	// Editors that completely take over the game
 	if ( com_editorActive && ( com_editors & ( EDITOR_RADIANT | EDITOR_GUI ) ) ) {
@@ -2923,6 +2939,10 @@ void idSessionLocal::Init() {
 
 	// we have a single instance of the main menu
 	guiMainMenu = uiManager->FindGui( "guis/mainmenu.gui", true, false, true );
+	if (!guiMainMenu) {
+		guiMainMenu = uiManager->FindGui( "guis/demo_mainmenu.gui", true, false, true );
+		demoversion = (guiMainMenu != NULL);
+	}
 	guiMainMenu_MapList = uiManager->AllocListGUI();
 	guiMainMenu_MapList->Config( guiMainMenu, "mapList" );
 	idAsyncNetwork::client.serverList.GUIConfig( guiMainMenu, "serverList" );

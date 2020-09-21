@@ -105,16 +105,14 @@ class bot:
         self._cache = cache (server, name)
         self._aas = aas (self.getPenMapName ())
         self._id = self.me ()
+        penMin, penMax, doomMin, doomMax = self.getLimits ()
         spawnPenPlayer = intVec (self._aas.getPlayerStart ())
         spawnD3Player = intVec (self._cache.getPlayerStart ())
         spawnD3Python = intVec (self._cache.getSpawnPos ())
         self._name = self._cache.getEntityName (self._id)
-        print ("self._name =", self._name)
-        print ("spawnD3Python =", spawnD3Python)
-        # spawnPenPython = self._aas.getSpawnFromName (self._name)
         spawnPenPython = intVec (self._aas.getSpawnFromName ("python_doommarine_mp"))
         print ("spawnPenPython =", spawnPenPython)
-        self._scaleX, self._offsetX, self._scaleY, self._offsetY = calcScaleOffset (spawnPenPlayer, spawnD3Player, spawnPenPython, spawnD3Python)
+        self._scaleX, self._offsetX, self._scaleY, self._offsetY = calcScaleOffset (penMin, doomMin, penMax, doomMax)
         print (self._scaleX, self._offsetX, self._scaleY, self._offsetY)
         print ("the doom3 coordinate", spawnD3Player, "really maps onto", spawnPenPlayer)
         self._scale2DX = signOf (self._scaleX)
@@ -127,6 +125,15 @@ class bot:
         print ("  d2pv says", test)
         # os.sys.exit (0)
 
+    #
+    #  getLimits -
+    #
+    
+    def getLimits (self):
+        return [[float (self.getTag ("penminx")), float (self.getTag ("penminy"))],
+                [float (self.getTag ("penmaxx")), float (self.getTag ("penmaxy"))],
+                [float (self.getTag ("doomminx")), float (self.getTag ("doomminy"))],
+                [float (self.getTag ("doommaxx")), float (self.getTag ("doommaxy"))]]
 
     #
     #  getPenMapName - return the name of the pen map.
@@ -137,13 +144,19 @@ class bot:
 
 
     #
+    #  getTag - returns the tag value in the map file.
+    #
+    
+    def getTag (self, name):
+        return self._cache.getTag (name)
+    
+    #
     #  me - return the bots entity, id.
     #
 
     def me (self):
         self._aas.printFloor ()
         return self._cache.me ()
-
 
     #
     #  maxobj - return the maximum number of registered, ids in the game.
@@ -153,14 +166,12 @@ class bot:
     def maxobj (self):
         return self._cache.maxobj ()
 
-
     #
     #  allobj - return a list of all objects
     #
 
     def allobj (self):
         return self._cache.allobj ()
-
 
     #
     #  getpos - return the position of, obj in doom3 units.
@@ -630,3 +641,6 @@ class bot:
 
     def reset (self):
         self._cache.reset ()
+
+    def isvisible (self, i):
+        return self._cache.isvisible (i)

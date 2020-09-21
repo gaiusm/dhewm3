@@ -40,6 +40,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "renderer/tr_local.h"
 
+#include "framework/GameCallbacks_local.h"
+
 // Vista OpenGL wrapper check
 #ifdef _WIN32
 #include "sys/win32/win_local.h"
@@ -221,6 +223,12 @@ idCVar r_materialOverride( "r_materialOverride", "", CVAR_RENDERER, "overrides a
 
 idCVar r_debugRenderToTexture( "r_debugRenderToTexture", "0", CVAR_RENDERER | CVAR_INTEGER, "" );
 
+// DG: let users disable the "scale menus to 4:3" hack
+idCVar r_scaleMenusTo43( "r_scaleMenusTo43", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Scale menus, fullscreen videos and PDA to 4:3 aspect ratio" );
+// DG: the fscking patent has finally expired
+idCVar r_useCarmacksReverse( "r_useCarmacksReverse", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Use Z-Fail (Carmack's Reverse) when rendering shadows" );
+idCVar r_useStencilOpSeparate( "r_useStencilOpSeparate", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Use glStencilOpSeparate() (if available) when rendering shadows" );
+
 // define qgl functions
 #define QGLPROC(name, rettype, args) rettype (APIENTRYP q##name) args;
 #include "renderer/qgl_proc.h"
@@ -266,6 +274,9 @@ PFNGLPROGRAMLOCALPARAMETER4FVARBPROC	qglProgramLocalParameter4fvARB;
 
 // GL_EXT_depth_bounds_test
 PFNGLDEPTHBOUNDSEXTPROC                 qglDepthBoundsEXT;
+
+// DG: couldn't find any extension for this, it's supported in GL2.0 and newer, incl OpenGL ES2.0
+PFNGLSTENCILOPSEPARATEPROC qglStencilOpSeparate;
 
 /*
 =================
@@ -384,6 +395,15 @@ static void R_CheckPortableExtensions( void ) {
 	glConfig.twoSidedStencilAvailable = R_CheckExtension( "GL_EXT_stencil_two_side" );
 	if ( glConfig.twoSidedStencilAvailable )
 		qglActiveStencilFaceEXT = (PFNGLACTIVESTENCILFACEEXTPROC)GLimp_ExtensionPointer( "glActiveStencilFaceEXT" );
+
+	if( glConfig.glVersion >= 2.0) {
+		common->Printf( "... got GL2.0+ glStencilOpSeparate()\n" );
+		qglStencilOpSeparate = (PFNGLSTENCILOPSEPARATEPROC)GLimp_ExtensionPointer( "glStencilOpSeparate" );
+	} else {
+		// TODO: there was an extension by ATI providing glStencilOpSeparateATI - do we care?
+		common->Printf( "... don't have GL2.0+ glStencilOpSeparate()\n" );
+		qglStencilOpSeparate = NULL;
+	}
 
 	// ARB_vertex_buffer_object
 	glConfig.ARBVertexBufferObjectAvailable = R_CheckExtension( "GL_ARB_vertex_buffer_object" );
@@ -559,9 +579,9 @@ static void initSortedVidModes()
 //     to overwrite the default resolution list in the system options menu
 
 // "r_custom*;640x480;800x600;1024x768;..."
-idStr R_GetVidModeListString()
+idStr R_GetVidModeListString(bool addCustom)
 {
-	idStr ret = "r_custom*";
+	idStr ret = addCustom ? "r_custom*" : "";
 
 	for(int i=0; i<s_numVidModes; ++i)
 	{
@@ -577,9 +597,9 @@ idStr R_GetVidModeListString()
 }
 
 // r_mode values for resolutions from R_GetVidModeListString(): "-1;3;4;5;..."
-idStr R_GetVidModeValsString()
+idStr R_GetVidModeValsString(bool addCustom)
 {
-	idStr ret =  "-1"; // for custom resolutions using r_customWidth/r_customHeight
+	idStr ret = addCustom ? "-1" : ""; // for custom resolutions using r_customWidth/r_customHeight
 	for(int i=0; i<s_numVidModes; ++i)
 	{
 		// for some reason, modes 0-2 are not used. maybe too small for GUI?
@@ -1871,6 +1891,12 @@ void R_VidRestart_f( const idCmdArgs &args ) {
 		return;
 	}
 
+	// DG: notify the game DLL about the reloadImages and vid_restart commands
+	if(gameCallbacks.reloadImagesCB != NULL)
+	{
+		gameCallbacks.reloadImagesCB(gameCallbacks.reloadImagesUserArg, args);
+	}
+
 	bool full = true;
 	bool forceWindow = false;
 	for ( int i = 1 ; i < args.Argc() ; i++ ) {
@@ -2146,6 +2172,8 @@ void idRenderSystemLocal::Init( void ) {
 	identitySpace.modelMatrix[0*4+0] = 1.0f;
 	identitySpace.modelMatrix[1*4+1] = 1.0f;
 	identitySpace.modelMatrix[2*4+2] = 1.0f;
+
+	origWidth = origHeight = 0; // DG: for resetting width/height in EndFrame()
 }
 
 /*

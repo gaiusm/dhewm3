@@ -798,7 +798,7 @@ const char *idFileSystemLocal::BuildOSPath( const char *base, const char *game, 
 
 		if ( testPath.HasUpper() ) {
 
-			common->DPrintf( "Non-portable: path contains uppercase characters: %s", testPath.c_str() );
+			common->DPrintf( "Non-portable: path contains uppercase characters: %s\n", testPath.c_str() );
 
 			// attempt a fixup on the fly
 			if ( fs_caseSensitiveOS.GetBool() ) {
@@ -1709,6 +1709,10 @@ idModList *idFileSystemLocal::ListMods( void ) {
 	search[3] = fs_cdpath.GetString();
 
 	for ( isearch = 0; isearch < 4; isearch++ ) {
+		// skip empty cdpath or such, so we don't search C:\ or / -_-
+		if ( search[ isearch ][ 0 ] == '\0' ) {
+			continue;
+		}
 
 		dirs.Clear();
 		pk4s.Clear();
@@ -2676,12 +2680,20 @@ void idFileSystemLocal::Init( void ) {
 	// spawn a thread to handle background file reads
 	StartBackgroundDownloadThread();
 
-	// if we can't find default.cfg, assume that the paths are
-	// busted and error out now, rather than getting an unreadable
-	// graphics screen when the font fails to load
-	// Dedicated servers can run with no outside files at all
 	if ( ReadFile( "default.cfg", NULL, NULL ) <= 0 ) {
-		common->FatalError( "Couldn't load default.cfg" );
+		// DG: the demo gamedata is in demo/ instead of base/. to make it "just work", add a fallback for that
+		if(fs_game.GetString()[0] == '\0' || idStr::Icmp(fs_game.GetString(), BASE_GAMEDIR) == 0) {
+			common->Warning("Couldn't find default.cfg in %s/, trying again with demo/\n", BASE_GAMEDIR);
+			fs_game.SetString("demo");
+			fs_game_base.SetString("demo");
+			Restart();
+		} else {
+			// if we can't find default.cfg, assume that the paths are
+			// busted and error out now, rather than getting an unreadable
+			// graphics screen when the font fails to load
+			// Dedicated servers can run with no outside files at all
+			common->FatalError( "Couldn't load default.cfg" );
+		}
 	}
 }
 
@@ -2695,6 +2707,9 @@ void idFileSystemLocal::Restart( void ) {
 	Shutdown( true );
 
 	Startup( );
+
+	// spawn a thread to handle background file reads
+	StartBackgroundDownloadThread();
 
 	// if we can't find default.cfg, assume that the paths are
 	// busted and error out now, rather than getting an unreadable

@@ -121,13 +121,16 @@ class pyBotClass
   void rpcAmmo (void);
   void rpcTurn (char *data);
   void rpcAngle (void);
-  void rpcPenMap (void);
+  char *truncstr (char *name);
+  void rpcTag (char *name);
   void rpcSelect (char *data);
   void rpcGetClassNameEntity (char *data);
   void rpcGetPairEntity (char *arg);
   void rpcGetEntityPos (char *data);
   void rpcChangeWeapon (char *data);
   void rpcGetEntityName (char *data);
+  void rpcCanSeeEntity (char *data);
+  void rpcMapToRunTimeEntity (char *data);
   int instanceId;  // python class, instance id
   int rpcId;  // index into the rpc array
   char *name;

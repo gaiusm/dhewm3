@@ -279,6 +279,15 @@ class cache:
             self._dict['getpenmapname'] = self._basic.getPenMapName ()
         return self._dict['getpenmapname']
 
+    #
+    #  getTag - returns the tag value in the map file.
+    #
+    
+    def getTag (self, name):
+        tagname = "tag " + name
+        if tagname not in self._dict:
+            self._dict[tagname] = self._basic.getTag (name)
+        return self._dict[tagname]
 
     #
     #  getPlayerStart - return the player start location.

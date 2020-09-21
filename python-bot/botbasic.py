@@ -249,15 +249,6 @@ class basic:
 
 
     #
-    #  isvisible - return True if object, d, is line of sight visible.
-    #  (not implemented yet)
-    #
-
-    def isvisible (self, d):
-        return False
-
-
-    #
     #  isfixed - return True if the object is a static fixture in the map.
     #  (not implemented yet)
     #
@@ -488,7 +479,15 @@ class basic:
     def getPenMapName (self):
         if debug_protocol:
             print("requesting penmap")
-        self.s.send ("penmap\n".encode ('utf-8'))
+        return self.getTag ("penmap")
+
+    #
+    #  getTag - returns the tag value in the map file.
+    #
+    
+    def getTag (self, name):
+        name = "tag " + name + "\n"
+        self.s.send (name.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
             print("doom returned", l)
@@ -560,6 +559,36 @@ class basic:
                 print("doom returned", l)
             return l
         return None
+
+    #
+    #  isvisible - returns True if entity_no is visible by the bot.
+    #
+
+    def isvisible (self, entity_no):
+        if entity_no >= 0:
+            if debug_protocol:
+                print("requesting canSeeEntity", entity_no)
+            l = "can_see_entity %d \n" % (entity_no)
+            self.s.send (l.encode ('utf-8'))
+            l = self.getLine ()
+            if debug_protocol:
+                print("doom returned", l)
+            return int (l) == 1
+        return False
+
+    #
+    #  mapToRunTimeEntity - converts a static map entity into a dynamic entity.
+    #
+
+    def mapToRunTimeEntity (self, entity_no):
+        if debug_protocol:
+            print("requesting map_to_runtime_entity", entity_no)
+        l = "map_to_runtime_entity %d \n" % (entity_no)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        return int (l)
 
     #
     #  reset - does nothing and its only purpose is to provide a similar

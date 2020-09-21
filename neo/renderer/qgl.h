@@ -95,6 +95,9 @@ extern	void ( APIENTRY *qglColorTableEXT)( int, int, int, int, int, const void *
 // EXT_stencil_two_side
 extern	PFNGLACTIVESTENCILFACEEXTPROC	qglActiveStencilFaceEXT;
 
+// DG: couldn't find any extension for this, it's supported in GL2.0 and newer, incl OpenGL ES2.0
+extern PFNGLSTENCILOPSEPARATEPROC qglStencilOpSeparate;
+
 // ARB_texture_compression
 extern	PFNGLCOMPRESSEDTEXIMAGE2DARBPROC	qglCompressedTexImage2DARB;
 extern	PFNGLGETCOMPRESSEDTEXIMAGEARBPROC	qglGetCompressedTexImageARB;
@@ -111,5 +114,38 @@ extern PFNGLPROGRAMLOCALPARAMETER4FVARBPROC	qglProgramLocalParameter4fvARB;
 
 // GL_EXT_depth_bounds_test
 extern PFNGLDEPTHBOUNDSEXTPROC              qglDepthBoundsEXT;
+
+#if defined( _WIN32 ) && defined(ID_ALLOW_TOOLS)
+
+extern  int   (WINAPI * qwglChoosePixelFormat)(HDC, CONST PIXELFORMATDESCRIPTOR *);
+extern  int   (WINAPI * qwglDescribePixelFormat) (HDC, int, UINT, LPPIXELFORMATDESCRIPTOR);
+extern  int   (WINAPI * qwglGetPixelFormat)(HDC);
+extern  BOOL(WINAPI * qwglSetPixelFormat)(HDC, int, CONST PIXELFORMATDESCRIPTOR *);
+extern  BOOL(WINAPI * qwglSwapBuffers)(HDC);
+
+extern BOOL(WINAPI * qwglCopyContext)(HGLRC, HGLRC, UINT);
+extern HGLRC(WINAPI * qwglCreateContext)(HDC);
+extern HGLRC(WINAPI * qwglCreateLayerContext)(HDC, int);
+extern BOOL(WINAPI * qwglDeleteContext)(HGLRC);
+extern HGLRC(WINAPI * qwglGetCurrentContext)(VOID);
+extern HDC(WINAPI * qwglGetCurrentDC)(VOID);
+extern PROC(WINAPI * qwglGetProcAddress)(LPCSTR);
+extern BOOL(WINAPI * qwglMakeCurrent)(HDC, HGLRC);
+extern BOOL(WINAPI * qwglShareLists)(HGLRC, HGLRC);
+extern BOOL(WINAPI * qwglUseFontBitmaps)(HDC, DWORD, DWORD, DWORD);
+
+extern BOOL(WINAPI * qwglUseFontOutlines)(HDC, DWORD, DWORD, DWORD, FLOAT,
+	FLOAT, int, LPGLYPHMETRICSFLOAT);
+
+extern BOOL(WINAPI * qwglDescribeLayerPlane)(HDC, int, int, UINT,
+	LPLAYERPLANEDESCRIPTOR);
+extern int  (WINAPI * qwglSetLayerPaletteEntries)(HDC, int, int, int,
+	CONST COLORREF *);
+extern int  (WINAPI * qwglGetLayerPaletteEntries)(HDC, int, int, int,
+	COLORREF *);
+extern BOOL(WINAPI * qwglRealizeLayerPalette)(HDC, int, BOOL);
+extern BOOL(WINAPI * qwglSwapLayerBuffers)(HDC, UINT);
+
+#endif	// _WIN32 && ID_ALLOW_TOOLS
 
 #endif

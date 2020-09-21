@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
+#include "tools/edit_gui_common.h"
+
 
 #include "qe3.h"
 #include "../../renderer/tr_local.h"
@@ -304,7 +304,7 @@ void Entity_FreeEpairs(entity_t *e) {
  */
 void Entity_AddToList(entity_t *e, entity_t *list) {
 	if (e->next || e->prev) {
-		Error("Entity_AddToList: allready linked");
+		Error("Entity_AddToList: already linked");
 	}
 
 	e->next = list->next;

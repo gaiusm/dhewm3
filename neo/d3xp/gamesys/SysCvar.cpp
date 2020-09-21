@@ -65,7 +65,7 @@ const char *ui_skinArgs[]			= { "skins/characters/player/marine_mp", "skins/char
 const char *ui_teamArgs[]			= { "Red", "Blue", NULL };
 
 struct gameVersion_s {
-	gameVersion_s( void ) { sprintf( string, "%s.%d%s %s-%s %s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_OS, BUILD_CPU, __DATE__, __TIME__ ); }
+	gameVersion_s( void ) { sprintf( string, "%s.%d%s %s-%s %s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_OS, BUILD_CPU, ID__DATE__, ID__TIME__ ); }
 	char	string[256];
 } gameVersion;
 
@@ -73,7 +73,7 @@ idCVar g_version(					"g_version",				gameVersion.string,	CVAR_GAME | CVAR_ROM, 
 
 // noset vars
 idCVar gamename(					"gamename",					GAME_VERSION,	CVAR_GAME | CVAR_SERVERINFO | CVAR_ROM, "" );
-idCVar gamedate(					"gamedate",					__DATE__,		CVAR_GAME | CVAR_ROM, "" );
+idCVar gamedate(					"gamedate",					ID__DATE__,		CVAR_GAME | CVAR_ROM, "" );
 
 // server info
 idCVar si_name(						"si_name",					"dhewm server",	CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "name of the server" );
@@ -126,6 +126,7 @@ idCVar g_projectileLights(			"g_projectileLights",		"1",			CVAR_GAME | CVAR_ARCH
 idCVar g_bloodEffects(				"g_bloodEffects",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show blood splats, sprays and gibs" );
 idCVar g_gore(				"g_gore",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "increase blood and gibs (Sam Peckinpah mode)" );
 idCVar g_doubleVision(				"g_doubleVision",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show double vision when taking damage" );
+idCVar g_hitEffect(					"g_hitEffect",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "mess up player camera when taking damage" );
 idCVar g_monsters(					"g_monsters",				"1",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_decals(					"g_decals",					"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show decals such as bullet holes" );
 idCVar g_knockback(					"g_knockback",				"1000",			CVAR_GAME | CVAR_INTEGER, "" );
@@ -157,8 +158,8 @@ idCVar g_healthTakeLimit(			"g_healthTakeLimit",		"25",			CVAR_GAME | CVAR_INTEG
 
 
 idCVar g_showPVS(					"g_showPVS",				"0",			CVAR_GAME | CVAR_INTEGER, "", 0, 2 );
-idCVar g_showTargets(				"g_showTargets",			"0",			CVAR_GAME | CVAR_BOOL, "draws entities and thier targets.  hidden entities are drawn grey." );
-idCVar g_showTriggers(				"g_showTriggers",			"0",			CVAR_GAME | CVAR_BOOL, "draws trigger entities (orange) and thier targets (green).  disabled triggers are drawn grey." );
+idCVar g_showTargets(				"g_showTargets",			"0",			CVAR_GAME | CVAR_BOOL, "draws entities and their targets.  hidden entities are drawn grey." );
+idCVar g_showTriggers(				"g_showTriggers",			"0",			CVAR_GAME | CVAR_BOOL, "draws trigger entities (orange) and their targets (green).  disabled triggers are drawn grey." );
 idCVar g_showCollisionWorld(		"g_showCollisionWorld",		"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_showCollisionModels(		"g_showCollisionModels",	"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_showCollisionTraces(		"g_showCollisionTraces",	"0",			CVAR_GAME | CVAR_BOOL, "" );

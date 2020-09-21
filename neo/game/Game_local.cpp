@@ -47,6 +47,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Misc.h"
 #include "Trigger.h"
 
+#include "framework/Licensee.h" // DG: for ID__DATE__
+
 #include "Game_local.h"
 #include "rt_module.h"
 
@@ -257,6 +259,20 @@ void idGameLocal::Clear( void ) {
 	memset( lagometer, 0, sizeof( lagometer ) );
 }
 
+
+// DG: hack to support the Demo version of Doom3
+// NOTE: I couldn't just make this a global bool variable that's initialized
+//       in idGameLocal::Init(), because we decide whether it's the demo
+//       after loading and initializing the game DLL (when loading the main menu)
+static bool (*isDemoFnPtr)(void) = NULL;
+bool IsDoom3DemoVersion()
+{
+	bool ret = isDemoFnPtr ? isDemoFnPtr() : false;
+	return ret;
+}
+
+
+
 /*
 ===========
 idGameLocal::Init
@@ -287,7 +303,7 @@ void idGameLocal::Init( void ) {
 
 	Printf( "----- Initializing Game -----\n" );
 	Printf( "gamename: %s\n", GAME_VERSION );
-	Printf( "gamedate: %s\n", __DATE__ );
+	Printf( "gamedate: %s\n", ID__DATE__ );
 
 	// register game specific decl types
 	declManager->RegisterDeclType( "model",				DECL_MODELDEF,		idDeclAllocator<idDeclModelDef> );
@@ -334,12 +350,9 @@ void idGameLocal::Init( void ) {
 
 	Printf( "...%d aas types\n", aasList.Num() );
 
-#if 1
-	/*
-	 *  Gaius' change to start the bot superServer
-	 */
 
-#endif
+	// DG: hack to support the Demo version of Doom3
+	common->GetAdditionalFunction(idCommon::FT_IsDemo, (idCommon::FunctionPointer*)&isDemoFnPtr, NULL);
 }
 
 /*
@@ -4435,7 +4448,7 @@ idEntity *idGameLocal::SelectPythonSpawnPoint ( idPlayer *player, bool pythonBot
   DumpEntities ();
   DumpEntityOrigin ();
 
-  i = pythonEntNum+numClients;   // --fixme-- require clientNum rather than +1  gaius (assumes one human)
+  i = pythonEntNum+numClients;   // allows for multiple human players
   while (true)
     {
       ent = FindEntityUsingDef (ent, "player_doommarine");
@@ -4453,6 +4466,28 @@ idEntity *idGameLocal::SelectPythonSpawnPoint ( idPlayer *player, bool pythonBot
       i--;
     }
   assert (false);
+}
+
+// (gaius)
+idEntity *idGameLocal::GetEntity (int id)
+{
+  return entities[id];
+}
+
+
+// gaius
+
+int idGameLocal::MapToRunTimeEntity (int id)
+{
+  idMapEntity *mapEnt = mapFile->GetEntity (id);
+  if (mapEnt && mapEnt->epairs.FindKey ("name"))
+    {
+      idStr name = mapEnt->epairs.FindKey ("name")->GetValue ();
+      for (int i = 0; i < num_entities; i++)
+	if (entities[i] && (idStr::Cmp (name, entities[i]->name) == 0))
+	  return i;
+    }
+  return -1;
 }
 
 

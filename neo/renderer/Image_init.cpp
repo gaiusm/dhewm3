@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "renderer/Image.h"
 
+#include "framework/GameCallbacks_local.h"
+
 const char *imageFilter[] = {
 	"GL_LINEAR_MIPMAP_NEAREST",
 	"GL_LINEAR_MIPMAP_LINEAR",
@@ -1071,6 +1073,12 @@ void R_ReloadImages_f( const idCmdArgs &args ) {
 	bool	all;
 	bool	checkPrecompressed;
 
+	// DG: notify the game DLL about the reloadImages command
+	if(gameCallbacks.reloadImagesCB != NULL)
+	{
+		gameCallbacks.reloadImagesCB(gameCallbacks.reloadImagesUserArg, args);
+	}
+
 	// this probably isn't necessary...
 	globalImages->ChangeTextureFilter();
 
@@ -1189,7 +1197,7 @@ void R_ListImages_f( const idCmdArgs &args ) {
 
 	totalSize = 0;
 
-	sortedImage_t	*sortedArray = (sortedImage_t *)alloca( sizeof( sortedImage_t ) * globalImages->images.Num() );
+	sortedImage_t	*sortedArray = (sortedImage_t *)_alloca( sizeof( sortedImage_t ) * globalImages->images.Num() );
 
 	for ( i = 0 ; i < globalImages->images.Num() ; i++ ) {
 		image = globalImages->images[ i ];

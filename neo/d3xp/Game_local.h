@@ -500,6 +500,8 @@ public:
 	void					SpreadLocations();
 	idLocationEntity *		LocationForPoint( const idVec3 &point );	// May return NULL
 	idEntity *				SelectInitialSpawnPoint( idPlayer *player, bool pythonBot, int pythonEntNum );
+	idEntity *				GetEntity (int id);	// (gaius)
+	int MapToRunTimeEntity (int id);  // (gaius)
 
 	void					SetPortalState( qhandle_t portal, int blockingBits );
 	void					SaveEntityNetworkEvent( const idEntity *ent, int event, const idBitMsg *msg );
