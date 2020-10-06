@@ -210,6 +210,7 @@ public:
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
 	bool                            SetFootPrints (bool value);   // gaius
 	void AddFootPrint (void);  // gaius
+        void SetupFootPrint (void); // gaius
 
 protected:
 	friend class			idAnimState;
@@ -243,6 +244,7 @@ protected:
 	idIK_Walk				walkIK;
 	bool                            makeFootPrints;  // gaius
 	bool                            leftFoot;  // gaius
+        float                           footLength;	// how far is the left foot from the right?
 
 	idStr					animPrefix;
 	idStr					painAnim;

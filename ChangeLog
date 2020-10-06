@@ -1,3 +1,12 @@
+2020-10-06      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* foot print angles implemented.
+	* neo/game/Actor.cpp:  (SetupBody) call SetupFootPrint.
+	(SetupFootPrint) New method.  (AddFootPrint) rewritten.
+	(footLength) initialized to zero.
+	* neo/game/Actor.h:  (footLength) defined.
+	* python-bot/python_doommarine.py:  (printf) New function.
+
 2020-09-21      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* rebased pybot-dhewm3 upon dhewm3.

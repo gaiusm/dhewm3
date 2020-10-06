@@ -9,6 +9,14 @@ import random
 debugTowards = True
 
 
+#
+#  printf - keeps C programmers happy :-)
+#
+
+def printf (format, *args):
+    print(str(format) % args, end=' ')
+
+
 def walkSquare ():
     b.forward (100, 100)
     b.select (["move"])
@@ -199,7 +207,6 @@ def guard_sentry (b):
         crouch_fire (b, you)
         time.sleep (1)  # --fixme-- should check for activity!
 
-doommarine = -2
 
 def execBot (b, useExceptions = True):
     if useExceptions:
@@ -229,6 +236,11 @@ def botMain (b):
         # findAll ()
         # guard_sentry (b)
 
+
+
+
+doommarine = -2  # default unset value - which will yield an
+                 # error if sent up to the server
 
 if len (sys.argv) > 1:
     doommarine = int (sys.argv[1])

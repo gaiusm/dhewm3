@@ -460,6 +460,7 @@ idActor::idActor( void ) {
 	enemyList.SetOwner( this );
 	makeFootPrints = true;      // gaius
 	leftFoot = false;  // gaius
+	footLength = 0.0;  // gaius
 }
 
 /*
@@ -1062,6 +1063,7 @@ void idActor::ProjectOverlay( const idVec3 &origin, const idVec3 &dir, float siz
 	}
 }
 
+
 /*
 ================
 idActor::LoadAF
@@ -1076,6 +1078,7 @@ bool idActor::LoadAF( void ) {
 	af.SetAnimator( GetAnimator() );
 	return af.Load( this, fileName );
 }
+
 
 /*
 =====================
@@ -1142,6 +1145,7 @@ void idActor::SetupBody( void ) {
 		headAnim.Init( this, &animator, ANIMCHANNEL_HEAD );
 	}
 
+	SetupFootPrint ();
 	waitState = "";
 
 	torsoAnim.Init( this, &animator, ANIMCHANNEL_TORSO );
@@ -2452,7 +2456,8 @@ void idActor::Event_DisableEyeFocus( void ) {
 
 void idActor::AddFootPrint (void)
 {
-  if (makeFootPrints && (GetPhysics ()->HasGroundContacts ()))
+#if 1
+  if (makeFootPrints && (GetPhysics ()) && (GetPhysics ()->HasGroundContacts ()))
     {
       float tall = (eyeOffset.z) ? eyeOffset.z : 12.0 * 6.0;
       float fullsize = tall / 3.0;
@@ -2460,20 +2465,76 @@ void idActor::AddFootPrint (void)
       idVec3 origin = GetPhysics ()->GetOrigin ();
       idVec3 gravityDir = GetPhysics ()->GetGravity ();
       float size = halfSize + gameLocal.random.RandomFloat () * halfSize;
-      // float angle = GetEnt ().viewAngles.yaw;
-#if 1
-      float angle = GetPhysics ()->GetAxis ().ToAngles ().yaw;
+
+      float angle = -viewAxis.ToAngles ().yaw;
+      float offset = 90.0;
+      float radians = (offset + angle) * (idMath::TWO_PI / 360.0);
+
+#if 0
+      gameLocal.Printf("angle %f, radians %f\n", angle, radians);
 #endif
-      gameLocal.Printf("angle %f\n", angle);
+      // to radians
 
       if (leftFoot)
-	gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_left", angle + idMath::TWO_PI / 4.0);
+	{
+	  // modify origin for the left foot.
+	  origin.x += cosf (radians) * footLength;
+	  origin.y += sinf (radians) * footLength;
+	  gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_left", radians);
+	}
       else
-	gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_right", angle + idMath::TWO_PI / 4.0);
+	{
+	  origin.x -= cosf (radians) * footLength;
+	  origin.y -= sinf (radians) * footLength;
+	  gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint_right", radians);
+	}
       leftFoot = !leftFoot;
     }
+#endif
 }
 
+
+/*
+=======================
+idActor::SetupFootPrint   (gaius)
+=======================
+ */
+
+void idActor::SetupFootPrint (void)
+{
+#if 1
+  idEntity *headEnt = head.GetEntity ();
+  const char *jointname;
+
+  jointname = spawnArgs.GetString ("bone_leftEye");
+  if (headEnt == NULL)
+    return;
+  if (headEnt->GetAnimator () == NULL)
+    return;
+  leftEyeJoint = headEnt->GetAnimator ()->GetJointHandle (jointname);
+
+  jointname = spawnArgs.GetString ("bone_rightEye");
+  rightEyeJoint = headEnt->GetAnimator ()->GetJointHandle (jointname);
+
+  if ((leftEyeJoint != INVALID_JOINT) && (rightEyeJoint != INVALID_JOINT))
+    {
+      idVec3 lpos;
+      idMat3 laxis;
+      idVec3 rpos;
+      idMat3 raxis;
+      idVec3 footDist;
+
+      // calculate left foot offset.
+      headEnt->GetAnimator ()->GetJointTransform (leftEyeJoint, gameLocal.time, lpos, laxis);
+      headEnt->GetAnimator ()->GetJointTransform (rightEyeJoint, gameLocal.time, rpos, raxis);
+      footDist = lpos - rpos;
+      footLength = footDist.Length () * 4.0;
+#if 0
+      gameLocal.Printf ("footDist = %f, %f, %f = %f\n", footDist.x, footDist.y, footDist.z, footLength);
+#endif
+    }
+#endif
+}
 
 bool idActor::SetFootPrints (bool value)
 {
