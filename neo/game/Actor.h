@@ -129,6 +129,13 @@ public:
 	void					Save( idSaveGame *savefile ) const;
 	void					Restore( idRestoreGame *savefile );
 
+        void                            SetVisibility (idVec4 value);  // gaius
+        void                            SetVisibilityParameters (idVec4 value);  // gaius
+        bool                            SetVisibilityFlag (bool value);  // gaius
+        void                            GetSelfEntityNames (char *buffer, int length); // gaius
+        void UniqueWord (char *buffer, int length, const char *word); // gaius
+        void SetVisibilityShader (const idMaterial *shader, idStr name);  // gaius
+        void FlipVisibility (void); // gaius
 	virtual void			Hide( void );
 	virtual void			Show( void );
 	virtual int				GetDefaultSurfaceType( void ) const;

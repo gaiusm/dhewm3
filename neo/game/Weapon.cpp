@@ -716,6 +716,19 @@ void idWeapon::Clear( void ) {
 	isFiring			= false;
 }
 
+
+// gaius
+
+void idWeapon::SetVisibilityShader (const idMaterial *shader)
+{
+  idEntity *ent;
+
+  ent = worldModel.GetEntity();
+  if (ent != NULL)
+    ent->SetVisibilityShader (shader);
+}
+
+
 /*
 ================
 idWeapon::InitWorldModel

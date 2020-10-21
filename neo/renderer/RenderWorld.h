@@ -50,7 +50,7 @@ class idRenderModel;
 #define	PROC_FILE_ID				"mapProcFile003"
 
 // shader parms
-const int MAX_GLOBAL_SHADER_PARMS	= 12;
+const int MAX_GLOBAL_SHADER_PARMS	= 12+7; //    12;   was 12 (increased gaius)
 
 const int SHADERPARM_RED			= 0;
 const int SHADERPARM_GREEN			= 1;
@@ -78,6 +78,15 @@ const int SHADERPARM_SPRITE_WIDTH		= 8;
 const int SHADERPARM_SPRITE_HEIGHT		= 9;
 
 const int SHADERPARM_PARTICLE_STOPTIME = 8;	// don't spawn any more particles after this time
+
+// invisiblity changes
+const int SHADERPARM_INV_TIME_START         = 12;
+const int SHADERPARM_INV_TIME_END           = 13;
+const int SHADERPARM_INV_TIME               = 14;
+const int SHADERPARM_INV_DURATION0          = 15;
+const int SHADERPARM_INV_DURATION1          = 16;
+const int SHADERPARM_INV_DURATION2          = 17;
+const int SHADERPARM_INV_DURATION3          = 18;
 
 // guis
 const int MAX_RENDERENTITY_GUI		= 3;
@@ -160,6 +169,11 @@ typedef struct renderEntity_s {
 	int						forceUpdate;			// force an update (NOTE: not a bool to keep this struct a multiple of 4 bytes)
 	int						timeGroup;
 	int						xrayIndex;
+
+        // gaius (taking note of the above) - I'm avoiding bool here as well.
+        int visibilityFlag;   // is this entity visible (visibility > 0.0)  // gaius
+        int blackWhiteFlag;   // should all textures be drawn in black and white // gaius
+        const idMaterial *visibilityShader;  // the visibility shader used if visibilityFlag is set. // gaius
 } renderEntity_t;
 
 

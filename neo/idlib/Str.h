@@ -241,6 +241,8 @@ public:
 	void				StripTrailingWhitespace( void );				// strip trailing white space characters
 	idStr &				StripQuotes( void );							// strip quotes around string
 	void				Replace( const char *old, const char *nw );
+        idStr                           CARWord (const char separator = ' ');  // get the next word
+        idStr &                         CDRWord (const char separator = ' ');  // return a string after the first word has been removed.
 
 	// file name methods
 	int					FileNameHash( void ) const;						// hash key for the filename (skips extension)

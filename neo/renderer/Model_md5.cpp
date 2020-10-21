@@ -770,41 +770,44 @@ idRenderModel *idRenderModelMD5::InstantiateDynamicModel( const struct renderEnt
 	}
 
 	// create all the surfaces
-	for( mesh = meshes.Ptr(), i = 0; i < meshes.Num(); i++, mesh++ ) {
-		// avoid deforming the surface if it will be a nodraw due to a skin remapping
-		// FIXME: may have to still deform clipping hulls
-		const idMaterial *shader = mesh->shader;
+	for (mesh = meshes.Ptr (), i = 0; i < meshes.Num (); i++, mesh++)
+	  {
+	    // avoid deforming the surface if it will be a nodraw due to a skin remapping
+	    // FIXME: may have to still deform clipping hulls
+	    const idMaterial *shader = mesh->shader;
 
-		shader = R_RemapShaderBySkin( shader, ent->customSkin, ent->customShader );
+	    shader = R_RemapShaderBySkin (shader, ent);
+	    if (!shader || (!shader->IsDrawn () && !shader->SurfaceCastsShadow ()))
+	      {
+		staticModel->DeleteSurfaceWithId (i);
+		mesh->surfaceNum = -1;
+		continue;
+	      }
 
-		if ( !shader || ( !shader->IsDrawn() && !shader->SurfaceCastsShadow() ) ) {
-			staticModel->DeleteSurfaceWithId( i );
-			mesh->surfaceNum = -1;
-			continue;
-		}
+	    modelSurface_t *surf;
 
-		modelSurface_t *surf;
+	    if (staticModel->FindSurfaceWithId (i, surfaceNum))
+	      {
+		mesh->surfaceNum = surfaceNum;
+		surf = &staticModel->surfaces[surfaceNum];
+	      }
+	    else
+	      {
+		// Remove Overlays before adding new surfaces
+		idRenderModelOverlay::RemoveOverlaySurfacesFromModel (staticModel);
 
-		if ( staticModel->FindSurfaceWithId( i, surfaceNum ) ) {
-			mesh->surfaceNum = surfaceNum;
-			surf = &staticModel->surfaces[surfaceNum];
-		} else {
+		mesh->surfaceNum = staticModel->NumSurfaces ();
+		surf = &staticModel->surfaces.Alloc ();
+		surf->geometry = NULL;
+		surf->shader = NULL;
+		surf->id = i;
+	      }
 
-			// Remove Overlays before adding new surfaces
-			idRenderModelOverlay::RemoveOverlaySurfacesFromModel( staticModel );
+	    mesh->UpdateSurface (ent, ent->joints, surf);
 
-			mesh->surfaceNum = staticModel->NumSurfaces();
-			surf = &staticModel->surfaces.Alloc();
-			surf->geometry = NULL;
-			surf->shader = NULL;
-			surf->id = i;
-		}
-
-		mesh->UpdateSurface( ent, ent->joints, surf );
-
-		staticModel->bounds.AddPoint( surf->geometry->bounds[0] );
-		staticModel->bounds.AddPoint( surf->geometry->bounds[1] );
-	}
+	    staticModel->bounds.AddPoint (surf->geometry->bounds[0]);
+	    staticModel->bounds.AddPoint (surf->geometry->bounds[1]);
+	  }
 
 	return staticModel;
 }

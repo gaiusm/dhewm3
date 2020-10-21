@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2017-2019
+# Copyright (C) 2017-2020
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -31,7 +31,7 @@ from botutils import *
 from socket import *
 
 superServer = 7000
-debug_protocol = False
+debug_protocol = True
 debug_turn = False
 
 
@@ -484,7 +484,7 @@ class basic:
     #
     #  getTag - returns the tag value in the map file.
     #
-    
+
     def getTag (self, name):
         name = "tag " + name + "\n"
         self.s.send (name.encode ('utf-8'))
@@ -604,3 +604,105 @@ class basic:
 
     def allobj (self):
         return list (range (1, self.maxobj () + 1))
+
+
+    #
+    #  turn the visibility shader on/off.  value is a boolean.
+    #
+
+    def visibilityFlag (self, value):
+        if debug_protocol:
+            print ("requesting set visibilityflag to", value)
+        l = "visibilityflag %d\n" % (value)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        return int (l) != 0
+
+
+    #
+    #  visibility - assign the alpha value to tbe visibility shader.
+    #               a value between 0.0 and 1.0 detemines whether
+    #               the object is transparent 0.0 to non transparent 1.0.
+    #
+
+    def visibility (self, red, green, blue, alpha):
+        if debug_protocol:
+            print ("requesting set visibility to", red, green, blue, alpha)
+        l = "visibility %f %f %f %f\n" % (red, green, blue, alpha)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        result = []
+        for word in l.split ():
+            result += [float (word)]
+        return result
+
+    #
+    #  visibilityParams -
+    #
+
+    def visibilityParams (self, parameters):
+        if debug_protocol:
+            print ("requesting set visibilityparams to", parameters)
+        l = "visibilityparams"
+        for param in parameters:
+            p = " %f" % (param)
+            l += p
+        l += "\n"
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        result = []
+        for word in l.split ():
+            result += [float (word)]
+        return result
+
+    def flipVisibility (self):
+        if debug_protocol:
+            print ("requesting flipVisibility")
+        self.s.send ("flipvisibility\n".encode ('utf-8'))
+        return int (self.getLine ())
+
+    #
+    #  getselfentitynames - returns a list of names associated with the bot.
+    #
+
+    def getselfentitynames (self):
+        if debug_protocol:
+            print ("requesting getselfentitynames")
+        l = "getselfentitynames\n"
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        if l.index (" ") >= 0:
+            return l.split ()
+        # single entity, create a list
+        return [l]
+
+    #
+    #  setvisibilityshader - allows the bot to change its visibility shader.
+    #                        It can change the visibility shader of different entities
+    #                        which it owns.  For example weapon, head, body can be given
+    #                        different shaders if required.
+    #
+
+    def setvisibilityshader (self, shader, entitylist = []):
+        if debug_protocol:
+            print ("requesting setvisibilityshader (", shader, ",", entitylist, ")")
+        l = "setvisibilityshader %s" % (shader)
+        for entity in entitylist:
+            l += " "
+            l += entity
+        l += "\n"
+        if debug_protocol:
+            print("botbasic sending", l)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print("doom returned", l)
+        return l

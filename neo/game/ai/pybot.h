@@ -25,7 +25,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 
-Author:  Gaius Mulley  <gaius@gnu.org>
+Author:  Gaius Mulley  <gaius.southwales@gmail.com>
 */
 
 #if !defined(PYBOT_H)
@@ -46,6 +46,8 @@ EXTERN void initSuperServer (void);
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+
+#include "idlib/math/Vector.h"
 
 class idAI;
 class idPlayer;
@@ -131,6 +133,13 @@ class pyBotClass
   void rpcGetEntityName (char *data);
   void rpcCanSeeEntity (char *data);
   void rpcMapToRunTimeEntity (char *data);
+  void rpcVisibility (const char *value);
+  void rpcVisibilityFlag (const char *value);
+  void rpcGetSelfEntityNames (void);
+  void rpcSetVisibilityShader (char *data);
+  void rpcVisibilityParameters (const char *value);
+  void rpcFlipVisibility (void);
+  idVec4 strToidVec4 (const char *value);
   int instanceId;  // python class, instance id
   int rpcId;  // index into the rpc array
   char *name;

@@ -870,7 +870,7 @@ void idInteraction::CreateInteraction( const idRenderModel *model ) {
 
 		// determine the shader for this surface, possibly by skinning
 		shader = surf->shader;
-		shader = R_RemapShaderBySkin( shader, entityDef->parms.customSkin, entityDef->parms.customShader );
+		shader = R_RemapShaderBySkin (shader, &entityDef->parms);
 
 		if ( !shader ) {
 			continue;

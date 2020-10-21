@@ -139,6 +139,12 @@ class item
   int getInstanceId (void);
   const char *getName (void);
   bool canSeeEntity (int entNo);
+  idVec4 visibility (idVec4 value);
+  idVec4 visibilityParameters (idVec4 value);
+  bool visibilityFlag (bool value);
+  void getSelfEntityNames (char *buffer, int length);
+  int setVisibilityShader (char *buffer);
+  int flipVisibility (void);
 
  private:
   enum {item_none, item_monster, item_player, item_ammo} kind;
@@ -216,7 +222,10 @@ idVec3 item::getPos (void)
       return idplayer->GetPos ();
     }
   ERROR ("case needs finishing");
-  return idVec3 {0.0, 0.0, 0.0};
+  idVec3 value;
+
+  value.Zero ();
+  return value;
 }
 
 
@@ -502,6 +511,116 @@ idEntity *item::getIdEntity (void)
 }
 
 
+/*
+ *  visibility
+ */
+
+idVec4 item::visibility (idVec4 value)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+#endif
+    case item_player:
+      return idplayer->SetVisibility (value);
+    }
+  assert (false);
+  value.Zero ();
+  return value;
+}
+
+/*
+ *  visibilityParameters - returns the visibility parameters for id,
+ *                         it also sets the new visibility parameters for id to value.
+ */
+
+idVec4 item::visibilityParameters (idVec4 value)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+#endif
+    case item_player:
+      return idplayer->SetVisibilityParameters (value);
+    }
+  assert (false);
+  value.Zero ();
+  return value;
+}
+
+/*
+ *  visibilityFlag
+ */
+
+bool item::visibilityFlag (bool value)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+#endif
+    case item_player:
+      return idplayer->SetVisibilityFlag (value);
+    }
+  assert (false);
+  return false;
+}
+
+
+void item::getSelfEntityNames (char *buffer, int length)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+      break;
+#endif
+    case item_player:
+      idplayer->GetSelfEntityNames (buffer, length);
+      break;
+    }
+}
+
+
+int item::setVisibilityShader (char *buffer)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+      break;
+#endif
+    case item_player:
+      return idplayer->SetVisibilityShader (buffer);
+      break;
+    }
+  assert (false);
+  return 0;
+}
+
+int item::flipVisibility (void)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      // --fixme-- finish for monsters
+      break;
+#endif
+    case item_player:
+      return idplayer->FlipVisibility ();
+    }
+  return -1;
+}
+
+
 #define MAX_ENTRY 1000
 
 class dict
@@ -532,6 +651,12 @@ class dict
   int weapon (int id, int new_weapon);
   int determineInstanceId (const char *name);
   bool canSeeEntity (int id, int entNo);
+  idVec4 visibility (int id, idVec4 value);
+  idVec4 visibilityParameters (int id, idVec4 value);
+  bool visibilityFlag (int id, bool value);
+  void getSelfEntityNames (int id, char *buffer, int length);
+  int setVisibilityShader (int id, char *buffer);
+  int flipVisibility (int id);
  private:
   item *entry[MAX_ENTRY];
   int high;
@@ -779,6 +904,68 @@ int dict::getHigh (void)
 bool dict::canSeeEntity (int id, int entNo)
 {
   return entry[id]->canSeeEntity (entNo);
+}
+
+
+/*
+ *  visibility - returns the old alpha value for id,
+ *               it also sets the new alpha for id to value.
+ */
+
+idVec4 dict::visibility (int id, idVec4 value)
+{
+  return entry[id]->visibility (value);
+}
+
+
+/*
+ *  visibilityParameters - returns the visibility parameters for id,
+ *                         it also sets the new visibility parameters for id to value.
+ */
+
+idVec4 dict::visibilityParameters (int id, idVec4 value)
+{
+  return entry[id]->visibilityParameters (value);
+}
+
+/*
+ *  visibilityFlag - returns the old bool value for id,
+ *                   it also sets the new bool for id to value.
+ */
+
+bool dict::visibilityFlag (int id, bool value)
+{
+  return entry[id]->visibilityFlag (value);
+}
+
+
+/*
+ *  setSelfEntityNames - add the list of entity names which the bot owns
+ *                       to the buffer/length.  The entity names include body
+ *                       components:  head, body, weapon etc.  Anything which
+ *                       makes up a bot player figure.
+ */
+
+void dict::getSelfEntityNames (int id, char *buffer, int length)
+{
+  entry[id]->getSelfEntityNames (buffer, length);
+}
+
+
+/*
+ *  setSelfEntityNames - add the list of entity names which the bot owns
+ */
+
+int dict::setVisibilityShader (int id, char *buffer)
+{
+  entry[id]->setVisibilityShader (buffer);
+  return 0;
+}
+
+
+int dict::flipVisibility (int id)
+{
+  return entry[id]->flipVisibility ();
 }
 
 static dict *dictionary = NULL;
@@ -1712,6 +1899,18 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcCanSeeEntity (&data[15]);
   else if (idStr::Cmpn (data, "map_to_runtime_entity ", 21) == 0)
     rpcMapToRunTimeEntity (&data[21]);
+  else if (idStr::Cmpn (data, "visibility ", 11) == 0)
+    rpcVisibility (&data[11]);
+  else if (idStr::Cmpn (data, "visibilityflag ", 15) == 0)
+    rpcVisibilityFlag (&data[15]);
+  else if (strcmp (data, "getselfentitynames") == 0)
+    rpcGetSelfEntityNames ();
+  else if (idStr::Cmpn (data, "setvisibilityshader ", 20) == 0)
+    rpcSetVisibilityShader (&data[20]);
+  else if (idStr::Cmpn (data, "visibilityparams ", 17) == 0)
+    rpcVisibilityParameters (&data[17]);
+  else if (strcmp (data, "flipvisibility") == 0)
+    rpcFlipVisibility ();
   else
     {
       gameLocal.Printf ("data = \"%s\", len (data) = %d\n", data, (int) strlen (data));
@@ -1789,7 +1988,7 @@ void pyBotClass::rpcSelf (void)
   char buf[1024];
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcSelf called by python\n");
+    gameLocal.Printf ("rpcSelf \n");
   idStr::snPrintf (buf, sizeof (buf), "%d\n", rpcId);
   if (protocol_debugging)
     gameLocal.Printf ("rpcSelf responding with: %s\n", buf);
@@ -1807,7 +2006,7 @@ void pyBotClass::rpcHealth (void)
   char buf[1024];
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcHealth called by python\n");
+    gameLocal.Printf ("rpcHealth \n");
   idStr::snPrintf (buf, sizeof (buf), "%d\n", dictionary->health (rpcId));
   if (protocol_debugging)
     gameLocal.Printf ("rpcHealth responding with: %s\n", buf);
@@ -1967,7 +2166,7 @@ void pyBotClass::rpcAim (char *data)
   bool seen = false;
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcAim (%s) called by python\n", data);
+    gameLocal.Printf ("rpcAim (%s) \n", data);
 
   if (id > 0)
     seen = dictionary->aim (rpcId, id);
@@ -1989,13 +2188,14 @@ void pyBotClass::rpcAngle (void)
   char buf[1024];
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcAngle called by python\n");
+    gameLocal.Printf ("rpcAngle \n");
 
   int angle = dictionary->angle (rpcId);
   idStr::snPrintf (buf, sizeof (buf), "%d\n", angle);
   buffer.pyput (buf);
   state = toWrite;
 }
+
 
 /*
  *  rpcTurn - turn to face angle.
@@ -2008,7 +2208,7 @@ void pyBotClass::rpcTurn (char *data)
   int vel = 0;
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcAngle (%s) called by python\n", data);
+    gameLocal.Printf ("rpcAngle (%s) \n", data);
 
   if (rpcId > 0)
     {
@@ -2056,7 +2256,7 @@ void pyBotClass::rpcTag (char *name)
 
   name = truncstr (name);
   if (protocol_debugging)
-    gameLocal.Printf ("rpcTag %s called by python\n", name);
+    gameLocal.Printf ("rpcTag %s \n", name);
 
   const char *p = gameLocal.FindDefinition (name);
   if (p == NULL)
@@ -2075,7 +2275,7 @@ void pyBotClass::rpcTag (char *name)
 void pyBotClass::rpcSelect (char *data)
 {
   if (protocol_debugging)
-    gameLocal.Printf ("rpcSelect (%s) called by python\n", data);
+    gameLocal.Printf ("rpcSelect (%s) \n", data);
   int mask = 0;
 
   if (strcmp (data, "any") == 0)
@@ -2179,14 +2379,173 @@ void pyBotClass::rpcReloadWeapon (void)
   int ammo;
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcReloadWeapon call by python\n");
+    gameLocal.Printf ("rpcReloadWeapon\n");
 
   if (rpcId > 0)
     ammo = dictionary->ammo (rpcId);   // --fixme-- this should call something else
   else
-    ammo = 0;
+    ammo = 0;  // this is not reload... --fixme--
 
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+idVec4
+pyBotClass::strToidVec4 (const char *value)
+{
+  idVec4 val;
+  idStr str (value);
+  idStr element;
+  int i = 0;
+
+  val.Zero ();
+  while ((i < 4) && (str.Length () > 0))
+    {
+      element = str.CARWord ();
+      if (element.Length () > 0)
+	val[i] = atof (element.c_str ());
+      i++;
+      str = str.CDRWord ();
+    }
+  return val;
+}
+
+
+/*
+ *  rpcVisibility - return the current level of visibility 0.0..1.0.
+ *                  It also sets the current level of visibility to the float argument.
+ */
+
+void pyBotClass::rpcVisibility (const char *value)
+{
+  char buf[1024];
+  idVec4 vis;
+
+  vis.Zero ();
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibility %s\n", value);
+  if (rpcId > 0)
+    vis = dictionary->visibility (rpcId, strToidVec4 (value));
+
+  idStr::snPrintf (buf, sizeof (buf), "%f %f %f %f\n",
+		   vis[0], vis[1], vis[2], vis[3]);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibility responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcVisibilityParameters - return the current visibility parameters.
+ *                            It also sets the current visibility parameters to the list in value.
+ */
+
+void pyBotClass::rpcVisibilityParameters (const char *value)
+{
+  char buf[1024];
+  idVec4 param;
+
+  param.Zero ();
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibilityParameters %s\n", value);
+  if (rpcId > 0)
+    param = dictionary->visibilityParameters (rpcId, strToidVec4 (value));
+
+  idStr::snPrintf (buf, sizeof (buf), "%f %f %f %f\n",
+		   param[0], param[1], param[2], param[3]);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibilityParameters responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+void pyBotClass::rpcFlipVisibility (void)
+{
+  char buf[1024];
+  int result = -1;
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcFlipVisibility\n");
+  if (rpcId > 0)
+    result = dictionary->flipVisibility (rpcId);
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcFlipVisibility responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcVisibilityFlag - return the old visibility flag.
+ *                      It also sets the current visibility flag.
+ */
+
+void pyBotClass::rpcVisibilityFlag (const char *value)
+{
+  char buf[1024];
+  int flag = 0;
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibilityFlag %s\n", value);
+  if (rpcId > 0)
+    flag = dictionary->visibilityFlag (rpcId, atoi (value));
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", flag);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcVisibilityFlag responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcGetSelfEntityNames - return a list of names for the entity of the bot.
+ */
+
+void pyBotClass::rpcGetSelfEntityNames (void)
+{
+  char buf[2048];
+
+  buf[0] = (char)0;
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetSelfEntityNames\n");
+  if (rpcId > 0)
+    dictionary->getSelfEntityNames (rpcId, buf, sizeof (buf));
+
+  idStr::Append (buf, sizeof (buf), "\n");
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcGetSelfEntityNames responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcSetVisibilityShader - sets the visibilityshader for each entity named.
+ *                           data must be:  shadername {entityname}.
+ *                           if {entityname} is absent then all entities are changed.
+ *                           The bot can only change entities it owns.
+ */
+
+void pyBotClass::rpcSetVisibilityShader (char *data)
+{
+  char buf[2048];
+  int flag = -1;
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcSetVisibilityShader: %s\n", data);
+  if (rpcId > 0)
+    flag = dictionary->setVisibilityShader (rpcId, data);
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", flag);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcSetVisibilityShader responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }
@@ -2202,7 +2561,7 @@ void pyBotClass::rpcGetClassNameEntity (char *data)
   char buf[1024];
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcGetClassNameEntity (%s) called by python\n", data);
+    gameLocal.Printf ("rpcGetClassNameEntity (%s)\n", data);
 
   int ent_no = gameLocal.FindEntityFromName (data);
 
@@ -2224,7 +2583,7 @@ void pyBotClass::rpcGetPairEntity (char *arg)
   char *a = arg;
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcGetPairEntity (%s) called by python\n", arg);
+    gameLocal.Printf ("rpcGetPairEntity (%s)\n", arg);
 
   char *b = index (arg, ' ');
   if (b != NULL)

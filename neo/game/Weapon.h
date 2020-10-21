@@ -157,7 +157,7 @@ public:
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
 	virtual void			ClientPredictionThink( void );
-
+        void SetVisibilityShader (const idMaterial *shader); // gaius
 private:
 	// script control
 	idScriptBool			WEAPON_ATTACK;

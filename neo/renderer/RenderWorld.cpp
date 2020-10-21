@@ -531,6 +531,10 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding &winding, c
 			if ( model == NULL || model->IsDynamicModel() != DM_STATIC || def->parms.callback ) {
 				continue;
 			}
+			// gaius added visibilityShader tests
+			if ( def->parms.visibilityShader != NULL && !def->parms.visibilityShader->AllowOverlays() ) {
+				continue;
+			}
 
 			if ( def->parms.customShader != NULL && !def->parms.customShader->AllowOverlays() ) {
 				continue;
@@ -546,7 +550,7 @@ void idRenderWorldLocal::ProjectDecalOntoWorld( const idFixedWinding &winding, c
 
 			// transform the bounding planes, fade planes and texture axis into local space
 			idRenderModelDecal::GlobalProjectionInfoToLocal( localInfo, info, def->parms.origin, def->parms.axis );
-			localInfo.force = ( def->parms.customShader != NULL );
+			localInfo.force = ( (def->parms.customShader != NULL) || (def->parms.visibilityShader != NULL) ); // gaius
 
 			if ( !def->decals ) {
 				def->decals = idRenderModelDecal::Alloc();
@@ -594,7 +598,7 @@ void idRenderWorldLocal::ProjectDecal( qhandle_t entityHandle, const idFixedWind
 
 	// transform the bounding planes, fade planes and texture axis into local space
 	idRenderModelDecal::GlobalProjectionInfoToLocal( localInfo, info, def->parms.origin, def->parms.axis );
-	localInfo.force = ( def->parms.customShader != NULL );
+	localInfo.force = ( (def->parms.customShader != NULL) || (def->parms.visibilityShader != NULL) );  // gaius
 
 	if ( def->decals == NULL ) {
 		def->decals = idRenderModelDecal::Alloc();
@@ -1011,7 +1015,7 @@ guiPoint_t	idRenderWorldLocal::GuiTrace( qhandle_t entityHandle, const idVec3 st
 			continue;
 		}
 
-		shader = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customShader );
+		shader = R_RemapShaderBySkin( surf->shader, &def->parms);
 		if ( !shader ) {
 			continue;
 		}
@@ -1088,7 +1092,7 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t &trace, qhandle_t entityHandle
 	for ( i = 0; i < model->NumBaseSurfaces(); i++ ) {
 		surf = model->Surface( i );
 
-		shader = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customShader );
+		shader = R_RemapShaderBySkin( surf->shader, &def->parms );
 
 		if ( shader->GetSurfaceFlags() & SURF_COLLISION ) {
 			collisionSurface = true;
@@ -1100,7 +1104,7 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t &trace, qhandle_t entityHandle
 	for ( i = 0; i < model->NumBaseSurfaces(); i++ ) {
 		surf = model->Surface( i );
 
-		shader = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customShader );
+		shader = R_RemapShaderBySkin( surf->shader, &def->parms );
 
 		if ( !surf->geometry || !shader ) {
 			continue;
@@ -1232,7 +1236,7 @@ bool idRenderWorldLocal::Trace( modelTrace_t &trace, const idVec3 &start, const 
 			for ( j = 0; j < model->NumSurfaces(); j++ ) {
 				const modelSurface_t *surf = model->Surface( j );
 
-				shader = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customShader );
+				shader = R_RemapShaderBySkin( surf->shader, &def->parms );
 
 				// if no geometry or no shader
 				if ( !surf->geometry || !shader ) {
@@ -2138,4 +2142,44 @@ const idMaterial *R_RemapShaderBySkin( const idMaterial *shader, const idDeclSki
 	}
 
 	return skin->RemapShaderBySkin( shader );
+}
+
+
+/*
+===============
+R_RemapShaderBySkin  // gaius
+===============
+*/
+const idMaterial *R_RemapShaderBySkin (const idMaterial *shader, const struct renderEntity_s *ent)
+{
+  const idDeclSkin *skin = ent->customSkin;
+
+  // if we have no shader
+  if (shader == NULL)
+    return NULL;
+
+  // never remap surfaces that were originally nodraw, like collision hulls
+  if (! shader->IsDrawn ())
+    return shader;
+
+  if (ent->visibilityFlag && ent->visibilityShader)
+    {
+      if (skin == NULL)
+	return const_cast<idMaterial *>(ent->customShader);
+      return skin->RemapShaderBySkin (ent->visibilityShader);
+    }
+
+  if (ent->customShader)
+    {
+      // this is sort of a hack, but cause deformed surfaces to map to empty surfaces,
+      // so the item highlight overlay doesn't highlight the autosprite surface
+      if (shader->Deform ())
+	return NULL;
+      return const_cast<idMaterial *>(ent->customShader);
+    }
+
+  if (!skin || !shader)
+    return const_cast<idMaterial *>(shader);
+
+  return skin->RemapShaderBySkin (shader);
 }

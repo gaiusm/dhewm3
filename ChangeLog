@@ -1,3 +1,69 @@
+2020-10-21      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* neo/CMakeLists.txt:  added commented out section to detect
+	unresolved link references in a shared library.
+	* neo/framework/CmdSystem.cpp:  commented out prompt.
+	* neo/framework/DeclFX.h:  tabs to spaces.
+	* neo/game/Actor.cpp:  (SetVisibility) New method implemented.
+	(SetVisibilityParameters)  New method implemented.
+	(SetVisibilityFlag)  New method implemented.  (SetVisibilityShader)
+	New method implemented.  (FlipVisibility) New method.
+	(UniqueWord)  New method implemented.  (GetSelfEntityNames) New method.
+	* neo/game/Actor.h:  (SetVisibility) New method defined.
+	(SetVisibilityParameters)  New method defined.
+	(SetVisibilityFlag)  New method defined.  (SetVisibilityShader)
+	New method defined.  (FlipVisibility) New method defined.
+	(UniqueWord)  New method defined.  (GetSelfEntityNames) New method
+	defined.
+	* neo/game/Entity.cpp:  (visibility_t)  class introduced and associated
+	methods implemented.  (FlipVisibility)  New method implemented.
+	(SetInvisible)  New method implemented.  (SetVisible)  New method
+	implemented.  (SetVisibilityFlag)  New method implemented.
+	(SetBlackWhiteFlag)  New method implemented.  (SetVisibility)  New
+	method implemented.  (GetVisibility)  New method implemented.
+	(GetBlackWhiteFlag)  New method implemented.  (GetVisibilityFlag)
+	New method implemented.  (UpdateVisibilityValues)  New method
+	implemented.  (SetVisibilityShader)  New method implemented.
+	(SetVisibilityParameters)  New method implemented.
+	* neo/game/Entity.h:
+	* neo/game/Moveable.cpp:
+	* neo/game/Player.cpp:  (SetVisibility)  New method implemented.
+	  (SetVisibilityParameters)  New method implemented.
+	(SetVisibilityFlag)  New method implemented.  (GetSelfEntityNames)
+	New method implemented.  (SetVisibilityShader)  New method
+	implemented.  (FlipVisibility)  New method implemented.
+	* neo/game/Player.h:
+	* neo/game/Weapon.cpp:  (SetVisibilityShader)  New method implemented.
+	* neo/game/Weapon.h:
+	* neo/game/ai/pybot.cpp:  (getPos)  New method implemented.
+	(getIdEntity)  New method implemented.  (visibility)  New method
+	implemented.  (visibilityParameters)  New method implemented.
+	(visibilityFlag)  New method implemented.  (getSelfEntityNames)
+	New method implemented.  (setVisibilityShader)  New method
+	implemented.  (flipVisibility)  New method implemented.
+	* neo/game/ai/pybot.h:
+	* neo/idlib/Str.cpp:  (CDRWord) implemented.  (CARWord) implemented.
+	* neo/idlib/Str.h:  (CDRWord) defined.  (CARWord) defined.
+	* neo/renderer/Interaction.cpp:  call R_RemapShaderBySkin using
+	pointer to entity parameters.
+	* neo/renderer/Material.cpp:  parm12..18 new shader parameters.
+	duration0..duration3, invstart, invend are names for the
+	parameters.  All used to control the visibility shaders.
+	* neo/renderer/Material.h:
+	* neo/renderer/Model_md5.cpp:
+	* neo/renderer/RenderWorld.cpp:
+	* neo/renderer/RenderWorld.h:
+	* neo/renderer/tr_light.cpp:
+	* neo/renderer/tr_local.h:
+	* python-bot/botbasic.py:  added many new visibility methods for
+	the bot.
+	* python-bot/botcache.py:  added many new visibility methods for
+	the bot.
+	* python-bot/botlib.py:  added many new visibility methods for
+	the bot.
+	* python-bot/python_doommarine.py:  tidied up code and added
+	example visibility tests.
+
 2020-10-14      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* created stable branch.

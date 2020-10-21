@@ -430,8 +430,11 @@ idMoveable::GetRenderModelMaterial
 ================
 */
 const idMaterial *idMoveable::GetRenderModelMaterial( void ) const {
+        if (renderEntity.visibilityFlag && renderEntity.visibilityShader)  // gaius
+	         return renderEntity.visibilityShader;  // gaius
+
 	if ( renderEntity.customShader ) {
-		return renderEntity.customShader;
+		 return renderEntity.customShader;
 	}
 	if ( renderEntity.hModel && renderEntity.hModel->NumSurfaces() ) {
 		 return renderEntity.hModel->Surface( 0 )->shader;

@@ -1370,7 +1370,8 @@ static void R_AddAmbientDrawsurfs( viewEntity_t *vEntity ) {
 			continue;
 		}
 		shader = surf->shader;
-		shader = R_RemapShaderBySkin( shader, def->parms.customSkin, def->parms.customShader );
+		// shader = R_RemapShaderBySkin( shader, def->parms.customSkin, def->parms.customShader ); orig was gaius
+		shader = R_RemapShaderBySkin (shader, &def->parms);  // gaius
 
 		R_GlobalShaderOverride( &shader );
 

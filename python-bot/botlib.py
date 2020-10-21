@@ -128,7 +128,7 @@ class bot:
     #
     #  getLimits -
     #
-    
+
     def getLimits (self):
         return [[float (self.getTag ("penminx")), float (self.getTag ("penminy"))],
                 [float (self.getTag ("penmaxx")), float (self.getTag ("penmaxy"))],
@@ -146,10 +146,10 @@ class bot:
     #
     #  getTag - returns the tag value in the map file.
     #
-    
+
     def getTag (self, name):
         return self._cache.getTag (name)
-    
+
     #
     #  me - return the bots entity, id.
     #
@@ -644,3 +644,56 @@ class bot:
 
     def isvisible (self, i):
         return self._cache.isvisible (i)
+
+    #
+    #  turn the visibility shader on/off.  value is a boolean.
+    #
+
+    def visibilityFlag (self, value):
+        return self._cache.visibilityFlag (value)
+
+    #
+    #  visibility - assign the alpha value to tbe visibility shader.
+    #               a value between 0.0 and 1.0 detemines whether
+    #               the object is transparent 0.0 to non transparent 1.0.
+    #
+
+    def visibility (self, red, green = None, blue = None, alpha = None):
+        if green is None:
+            green = red
+        if blue is None:
+            blue = green
+        if alpha is None:
+            alpha = blue
+        return self._cache.visibility (red, green, blue, alpha)
+
+    #
+    #  visibilityParams - parameters is a list of time segment durations.
+    #
+
+    def visibilityParams (self, parameters):
+        return self._cache.visibilityParams (parameters)
+
+    #
+    #  flipVisibility - flip the visibility shader buffer.
+    #
+
+    def flipVisibility (self):
+        return self._cache.flipVisibility ()
+
+    #
+    #  getselfentitynames - returns a list of names associated with the bot.
+    #
+
+    def getselfentitynames (self):
+        return self._cache.getselfentitynames ()
+
+    #
+    #  setvisibilityshader - allows the bot to change its visibility shader.
+    #                        It can change the visibility shader of different entities
+    #                        which it owns.  For example weapon, head, body can be given
+    #                        different shaders if required.
+    #
+
+    def setvisibilityshader (self, shader, entitylist = []):
+        return self._cache.setvisibilityshader (shader, entitylist)

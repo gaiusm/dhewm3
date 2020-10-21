@@ -559,6 +559,43 @@ bool idStr::StripTrailingOnce( const char *string ) {
 	return false;
 }
 
+
+/*
+ * get the next word
+ * (gaius)
+ */
+
+idStr idStr::CARWord (const char separator)
+{
+  StripLeading (separator);
+  int i = 0;
+  while ((data[i] != (char)0) && (data[i] != separator))
+    i++;
+  return idStr (data, 0, i);
+}
+
+
+/*
+ *  return a string after the first word has been removed.
+ */
+
+idStr& idStr::CDRWord (const char separator)
+{
+  StripLeading (separator);
+  while (data[0] != (char)0)
+    {
+      if (data[0] == separator)
+	{
+	  StripLeading (separator);
+	  return *this;
+	}
+      memmove (&data[0], &data[1], len);
+      len--;
+    }
+  return *this;
+}
+
+
 /*
 ============
 idStr::Replace

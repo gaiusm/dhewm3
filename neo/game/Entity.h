@@ -108,6 +108,20 @@ struct signal_t {
 	const function_t	*function;
 };
 
+
+class visibility_t {
+public:
+  visibility_t ();
+  ~visibility_t ();
+  visibility_t (const visibility_t &from);              // copy
+  visibility_t& operator= (const visibility_t &from);   // assignment
+  bool visibilityFlag;   // is this entity visible (visibility > 0.0)  // gaius
+  idVec4 visibility;      // alpha channel for all textures of this entity. // gaius
+  idVec4 visibilityParameters;  // the time duration parameters for the shader.  // gaius
+  bool blackWhiteFlag;   // should all textures be drawn in black and white // gaius
+  const idMaterial *visibilityShader;  // the visibility shader used if visibilityFlag is set. // gaius
+};
+
 class signalList_t {
 public:
 	idList<signal_t> signal[ NUM_SIGNALS ];
@@ -206,6 +220,17 @@ public:
 	virtual void			Hide( void );
 	virtual void			Show( void );
 	bool					IsHidden( void ) const;
+        void SetInvisible (void);     // gaius
+        void SetVisible (void);     // gaius
+        bool SetVisibilityFlag (bool value);     // gaius
+        bool SetBlackWhiteFlag (bool flag);  // gaius
+        idVec4 SetVisibility (idVec4 value);   // gaius
+        idVec4 GetVisibility (void);   // gaius
+        idVec4 SetVisibilityParameters (idVec4 value);   // gaius
+        bool GetBlackWhiteFlag (void);     // gaius
+        bool GetVisibilityFlag (void);        // gaius
+        void FlipVisibility (void);         // gaius
+
 	void					UpdateVisuals( void );
 	void					UpdateModel( void );
 	void					UpdateModelTransform( void );
@@ -360,6 +385,8 @@ public:
 
 	void					ServerSendEvent( int eventId, const idBitMsg *msg, bool saveEvent, int excludeClient ) const;
 	void					ClientSendEvent( int eventId, const idBitMsg *msg ) const;
+        void UpdateVisibilityValues (void);  // gaius
+        void SetVisibilityShader (const idMaterial *shader);  // gaius
 
 protected:
 	renderEntity_t			renderEntity;						// used to present a model to the renderer
@@ -382,6 +409,9 @@ private:
 
 	int						mpGUIState;							// local cache to avoid systematic SetStateInt
 
+        visibility_t visibility;   // gaius
+        visibility_t buffered_visibility;   // gaius
+        int visibilityTime;    // gaius
 private:
 	void					FixupLocalizedStrings();
 
@@ -511,6 +541,7 @@ public:
 	void					UpdateDamageEffects( void );
 
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
+  // // void SetVisibilityShader (const idMaterial *shader); // gaius
 
 	enum {
 		EVENT_ADD_DAMAGE_EFFECT = idEntity::EVENT_MAXEVENTS,

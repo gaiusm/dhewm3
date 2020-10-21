@@ -677,7 +677,7 @@ void idCmdSystemLocal::ExecuteCommandBuffer( void ) {
 
 		// execute the command line that we have already tokenized
 		ExecuteTokenizedString( args );
-		common->Printf( "<enter> " );
+		// common->Printf( "<enter> " );  // gaius
 	}
 }
 

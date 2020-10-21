@@ -1066,6 +1066,216 @@ void idActor::ProjectOverlay( const idVec3 &origin, const idVec3 &dir, float siz
 
 /*
 ================
+idActor::SetVisibility  // gaius
+================
+*/
+void idActor::SetVisibility (idVec4 value)
+{
+  idAFAttachment *headEnt;
+  idEntity *ent;
+  idEntity *next;
+
+  idAFEntity_Base::SetVisibility (value);
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    headEnt->SetVisibility (value);
+
+  for (int i = 0; i < attachments.Num(); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      if (ent != NULL)
+	ent->SetVisibility (value);
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      if (ent->GetBindMaster () == this)
+	ent->SetVisibility (value);
+    }
+}
+
+
+/*
+================
+idActor::SetVisibilityParameters  // gaius
+================
+*/
+void idActor::SetVisibilityParameters (idVec4 value)
+{
+  idAFAttachment *headEnt;
+  idEntity *ent;
+  idEntity *next;
+
+  idAFEntity_Base::SetVisibilityParameters (value);
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    headEnt->SetVisibilityParameters (value);
+
+  for (int i = 0; i < attachments.Num(); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      if (ent != NULL)
+	ent->SetVisibilityParameters (value);
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      if (ent->GetBindMaster () == this)
+	ent->SetVisibilityParameters (value);
+    }
+}
+
+
+/*
+================
+idActor::SetVisibilityFlag  // gaius
+================
+*/
+bool idActor::SetVisibilityFlag (bool value)
+{
+  idAFAttachment *headEnt;
+  idEntity *next;
+  idEntity *ent;
+
+  idAFEntity_Base::SetVisibilityFlag (value);
+
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    {
+      headEnt->SetVisibilityFlag (value);
+#if 0
+      gameLocal.Printf ("head for actor, entity %d is set to %d\n",
+			headEnt->entityNumber, value);
+#endif
+    }
+
+  for (int i = 0; i < attachments.Num (); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      if (ent != NULL)
+	ent->SetVisibilityFlag (value);
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      if (ent->GetBindMaster () == this)
+	ent->SetVisibilityFlag (value);
+    }
+  return value;
+}
+
+
+/*
+ *  gaius
+ */
+
+void idActor::SetVisibilityShader (const idMaterial *shader, idStr name)
+{
+  idAFAttachment *headEnt;
+  idEntity *next;
+  idEntity *ent;
+  const char *c_name = name.c_str ();
+  bool noname = name.Length () == 0;
+
+  gameLocal.Printf ("set visibility shader actor %s\n", c_name);
+  if (noname)
+    idAFEntity_Base::SetVisibilityShader (shader);
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    if (noname || (strcmp (c_name, headEnt->GetName ()) == 0))
+      headEnt->SetVisibilityShader (shader);
+
+
+  for (int i = 0; i < attachments.Num (); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      if (noname || (strcmp (c_name, ent->GetName ()) == 0))
+	ent->SetVisibilityShader (shader);
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      if (noname || (strcmp (c_name, ent->GetName ()) == 0))
+	ent->SetVisibilityShader (shader);
+    }
+}
+
+
+void idActor::FlipVisibility (void)
+{
+  idAFAttachment *headEnt;
+  idEntity *next;
+  idEntity *ent;
+
+  idAFEntity_Base::FlipVisibility ();
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    headEnt->FlipVisibility ();
+
+
+  for (int i = 0; i < attachments.Num (); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      ent->FlipVisibility ();
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      ent->FlipVisibility ();
+    }
+}
+
+
+void idActor::UniqueWord (char *buffer, int length, const char *word)
+{
+  idStr buf (buffer);
+  if (buf.Find (word, false) < 0)
+    {
+      idStr::Append (buffer, length, " ");
+      idStr::Append (buffer, length, word);
+    }
+}
+
+
+/*
+================
+idActor::GetSelfEntityNames  // gaius
+================
+*/
+
+void idActor::GetSelfEntityNames (char *buffer, int length)
+{
+  idAFAttachment *headEnt;
+  idEntity *next;
+  idEntity *ent;
+
+  UniqueWord (buffer, length, GetName ());
+  headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    UniqueWord (buffer, length, headEnt->GetName ());
+
+  for (int i = 0; i < attachments.Num (); i++)
+    {
+      ent = attachments[i].ent.GetEntity ();
+      UniqueWord (buffer, length, ent->GetName ());
+    }
+
+  for (ent = GetNextTeamEntity (); ent != NULL; ent = next)
+    {
+      next = ent->GetNextTeamEntity ();
+      if (ent->GetBindMaster () == this)
+	UniqueWord (buffer, length, ent->GetName ());
+    }
+}
+
+
+/*
+================
 idActor::LoadAF
 ================
 */

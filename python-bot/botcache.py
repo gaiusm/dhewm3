@@ -282,7 +282,7 @@ class cache:
     #
     #  getTag - returns the tag value in the map file.
     #
-    
+
     def getTag (self, name):
         tagname = "tag " + name
         if tagname not in self._dict:
@@ -338,3 +338,53 @@ class cache:
         if name not in self._dict:
             self._dict[name] = self._basic.getEntityName (entity_no)
         return self._dict[name]
+
+    #
+    #  turn the visibility shader on/off.  value is a boolean.
+    #
+
+    def visibilityFlag (self, value):
+        return self._basic.visibilityFlag (value)
+
+    #
+    #  visibility - assign the alpha value to tbe visibility shader.
+    #               a value between 0.0 and 1.0 detemines whether
+    #               the object is transparent 0.0 to non transparent 1.0.
+    #
+
+    def visibility (self, red, green, blue, alpha):
+        return self._basic.visibility (red, green, blue, alpha)
+
+    #
+    #  visibilityParams -
+    #
+
+    def visibilityParams (self, parameters):
+        return self._basic.visibilityParams (parameters)
+
+    #
+    #  flipVisibility - flip the visibility shader buffer.
+    #
+
+    def flipVisibility (self):
+        return self._basic.flipVisibility ()
+
+    #
+    #  getselfentitynames - returns a list of names associated with the bot.
+    #
+
+    def getselfentitynames (self):
+        name = "selfentitynames"
+        if name not in self._dict:
+            self._dict[name] = self._basic.getselfentitynames ()
+        return self._dict[name]
+
+    #
+    #  setvisibilityshader - allows the bot to change its visibility shader.
+    #                        It can change the visibility shader of different entities
+    #                        which it owns.  For example weapon, head, body can be given
+    #                        different shaders if required.
+    #
+
+    def setvisibilityshader (self, shader, entitylist = []):
+        return self._basic.setvisibilityshader (shader, entitylist)

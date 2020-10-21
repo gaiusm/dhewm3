@@ -562,6 +562,7 @@ bool R_GlobalShaderOverride( const idMaterial **shader );
 
 // this does various checks before calling the idDeclSkin
 const idMaterial *R_RemapShaderBySkin( const idMaterial *shader, const idDeclSkin *customSkin, const idMaterial *customShader );
+const idMaterial *R_RemapShaderBySkin (const idMaterial *shader, const struct renderEntity_s *ent);  // gaius
 
 
 //====================================================

@@ -2506,10 +2506,158 @@ bool idPlayer::SetSkinColor (int choice)
 }
 
 
-// gaius
+/*
+ *  gaius (sets the whole model alpha channel to value).
+ *  value <= 0.0 invisible
+ *  value >= 1.0 visible.
+ */
 
-void idPlayer::SetSkinAlpha (float value)
+idVec4 idPlayer::SetVisibility (idVec4 value)
 {
+  idActor::SetVisibility (value);
+  idAFAttachment *headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    {
+      headEnt->SetVisibility (value);
+      idEntity *ent = headEnt->GetBody ();
+      if (ent != NULL)
+	ent->SetVisibility (value);
+    }
+
+  idEntity *ent = weapon.GetEntity () ;
+  if (ent != NULL)
+    ent->SetVisibility (value);
+
+  UpdateVisuals ();
+  return value;
+}
+
+
+idVec4 idPlayer::SetVisibilityParameters (idVec4 value)
+{
+  idActor::SetVisibilityParameters (value);
+  idAFAttachment *headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    {
+      headEnt->SetVisibilityParameters (value);
+      idEntity *ent = headEnt->GetBody ();
+      if (ent != NULL)
+	ent->SetVisibilityParameters (value);
+    }
+
+  idEntity *ent = weapon.GetEntity () ;
+  if (ent != NULL)
+    ent->SetVisibilityParameters (value);
+
+  UpdateVisuals ();
+  return value;
+}
+
+/*
+ *  sets the flags for all entities of the model to use the visibility shader.
+ *  (gaius)
+ */
+
+bool idPlayer::SetVisibilityFlag (bool value)
+{
+  // gameLocal.Printf ("player entity %d\n", entityNumber);
+  idActor::SetVisibilityFlag (value);
+  idWeapon *weap = weapon.GetEntity ();
+  if (weap != NULL)
+    weap->SetVisibilityFlag (value);
+  UpdateVisuals ();
+  return value;
+}
+
+/*
+ * GetSelfEntityNames fills in buffer with a list of space separated entity names
+ * associated with this player.
+ *
+ * (gaius)
+ */
+
+void idPlayer::GetSelfEntityNames (char *buffer, int length)
+{
+  idActor::GetSelfEntityNames (buffer, length);
+  idWeapon *weap = weapon.GetEntity ();
+  if (weap != NULL)
+    {
+      idStr::Append (buffer, length, " ");
+      idStr::Append (buffer, length, weap->GetName ());
+    }
+}
+
+/*
+ *
+ *  (gaius)
+ */
+
+int idPlayer::SetVisibilityShader (char *buffer)
+{
+  idStr buf (buffer);
+  buf.StripTrailing ('\n');
+  idStr shaderName = buf.CARWord ();
+  const idMaterial *shader = declManager->FindMaterial (shaderName.c_str ());
+
+  if (shader == NULL)
+    return -1;
+
+  buf.CDRWord ();
+  if (buf.Length () == 0)
+    {
+      gameLocal.Printf ("setting all entities to a shader: %s\n", buffer);
+      /* no named entities, change everything.  */
+      idActor::SetVisibilityShader (shader, buf);
+      /* weapon.  */
+      idWeapon *weap = weapon.GetEntity ();
+      if (weap != NULL)
+	weap->SetVisibilityShader (shader);
+      /* head.  */
+      idAFAttachment *headEnt = head.GetEntity ();
+      if (headEnt != NULL)
+	{
+	  gameLocal.Printf ("idPlayer::SetVisibilityShader  head entity number: %d\n",
+			    headEnt->entityNumber);
+	  headEnt->SetVisibilityShader (shader);
+	}
+    }
+  else
+    {
+      gameLocal.Printf ("setting specific entities to a shader: %s\n", buffer);
+      /* named entities, change those specified.  */
+      while (buf.Length () > 0)
+	{
+	  idStr word = buf.CARWord ();
+	  buf.CDRWord ();
+	  if (word == "weapon")
+	    {
+	      idWeapon *weap = weapon.GetEntity ();
+	      if (weap != NULL)
+		weap->SetVisibilityShader (shader);
+	    }
+	  else
+	    idActor::SetVisibilityShader (shader, word);
+	}
+    }
+  return 0;
+}
+
+
+int idPlayer::FlipVisibility (void)
+{
+  gameLocal.Printf ("FlipVisibility\n");
+  /* no named entities, change everything.  */
+  idActor::FlipVisibility ();
+  /* weapon.  */
+  idWeapon *weap = weapon.GetEntity ();
+  if (weap != NULL)
+    weap->FlipVisibility ();
+  /* head.  */
+  idAFAttachment *headEnt = head.GetEntity ();
+  if (headEnt != NULL)
+    headEnt->FlipVisibility ();
+  UpdateVisuals ();
+  return 0;
 }
 
 
@@ -4883,22 +5031,6 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 }
 
 
-// gaius
-
-#if 0
-void idPlayer::footPrint (void)
-{
-  float fullsize = 48.0;
-  float halfSize = fullsize * 0.5f;
-  idVec3 origin = physicsObj.GetOrigin ();
-  idVec3 gravityDir = physicsObj.GetGravityNormal ();
-  float size = halfSize + gameLocal.random.RandomFloat () * halfSize;
-  gameLocal.ProjectDecal (origin, gravityDir, 2.0f * size, true, size, "textures/quake1/footprint");
-}
-#endif
-
-
-
 /*
 ===============
 idPlayer::BobCycle
@@ -6619,7 +6751,7 @@ void idPlayer::Think( void ) {
 		if ( influenceSkin ) {
 			headRenderEnt->customSkin = influenceSkin;
 		} else {
-			headRenderEnt->customSkin = NULL;
+                        headRenderEnt->customSkin = NULL;
 		}
 	}
 

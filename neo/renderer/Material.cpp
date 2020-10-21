@@ -276,7 +276,7 @@ static const infoParm_t	infoParms[] = {
 	{"glass",		0,	SURFTYPE_GLASS,		0 },	// glass
 	{"plastic",		0,	SURFTYPE_PLASTIC,	0 },	// plastic
 	{"ricochet",	0,	SURFTYPE_RICOCHET,	0 },	// behaves like metal but causes a ricochet sound
-
+	{"fleshinvisible",		1,	SURFTYPE_FLESH, 0 },		// used to make monsters/players invisible
 	// unassigned surface types
 	{"surftype10",	0,	SURFTYPE_10,	0 },
 	{"surftype11",	0,	SURFTYPE_11,	0 },
@@ -574,6 +574,39 @@ int idMaterial::ParseTerm( idLexer &src ) {
 		pd->registersAreConstant = false;
 		return EXP_REG_PARM11;
 	}
+	if ( !token.Icmp( "parm12" ) ) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM12;
+	}
+	if ( !token.Icmp( "invstart" ) ) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM12;
+	}
+	if ((token.Icmp ("parm13") == 0) || (token.Icmp ("invend") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM13;
+	}
+	if ((token.Icmp ("parm14") == 0) || (token.Icmp ("invtime") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM14;
+	}
+	if ((token.Icmp ("parm15") == 0) || (token.Icmp ("duration0") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM15;
+	}
+	if ((token.Icmp ("parm16") == 0) || (token.Icmp ("duration1") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM16;
+	}
+	if ((token.Icmp ("parm17") == 0) || (token.Icmp ("duration2") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM17;
+	}
+	if ((token.Icmp ("parm18") == 0) || (token.Icmp ("duration3") == 0)) {
+		pd->registersAreConstant = false;
+		return EXP_REG_PARM18;
+	}
+
 	if ( !token.Icmp( "global0" ) ) {
 		pd->registersAreConstant = false;
 		return EXP_REG_GLOBAL0;
@@ -1536,7 +1569,6 @@ void idMaterial::ParseStage( idLexer &src, const textureRepeat_t trpDefault ) {
 			continue;
 		}
 
-
 		common->Warning( "unknown token '%s' in material '%s'", token.c_str(), GetName() );
 		SetMaterialFlag( MF_DEFAULTED );
 		return;
@@ -2408,6 +2440,7 @@ void idMaterial::EvaluateRegisters( float *registers, const float shaderParms[MA
 
 	// copy the local and global parameters
 	registers[EXP_REG_TIME] = view->floatTime;
+	// common->Printf( "time register %i: %f\n", EXP_REG_TIME, registers[EXP_REG_TIME] );
 	registers[EXP_REG_PARM0] = shaderParms[0];
 	registers[EXP_REG_PARM1] = shaderParms[1];
 	registers[EXP_REG_PARM2] = shaderParms[2];
@@ -2420,6 +2453,14 @@ void idMaterial::EvaluateRegisters( float *registers, const float shaderParms[MA
 	registers[EXP_REG_PARM9] = shaderParms[9];
 	registers[EXP_REG_PARM10] = shaderParms[10];
 	registers[EXP_REG_PARM11] = shaderParms[11];
+	registers[EXP_REG_PARM12] = shaderParms[12];
+	registers[EXP_REG_PARM13] = shaderParms[13];
+	registers[EXP_REG_PARM14] = shaderParms[14];
+	registers[EXP_REG_PARM15] = shaderParms[15];
+	registers[EXP_REG_PARM16] = shaderParms[16];
+	registers[EXP_REG_PARM17] = shaderParms[17];
+	registers[EXP_REG_PARM18] = shaderParms[18];
+
 	registers[EXP_REG_GLOBAL0] = view->renderView.shaderParms[0];
 	registers[EXP_REG_GLOBAL1] = view->renderView.shaderParms[1];
 	registers[EXP_REG_GLOBAL2] = view->renderView.shaderParms[2];

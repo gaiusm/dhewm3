@@ -46,6 +46,57 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Entity.h"
 
+
+/*
+ *  visibility_t - contains all visibility values.
+ */
+
+visibility_t::visibility_t ()
+{
+  visibilityFlag = false;
+  visibility = idVec4 (1.0, 1.0, 1.0, 1.0);
+  visibilityParameters = idVec4 (0.0, 0.0, 0.0, 0.0);
+  blackWhiteFlag = false;
+  visibilityShader = NULL;
+}
+
+
+/*
+ *  visibility_t - contains all visibility values.
+ */
+
+visibility_t::~visibility_t ()
+{
+  visibilityFlag = false;
+  visibility = idVec4 (1.0, 1.0, 1.0, 1.0);
+  visibilityParameters = idVec4 (0.0, 0.0, 0.0, 0.0);
+  blackWhiteFlag = false;
+  visibilityShader = NULL;
+}
+
+// copy
+
+visibility_t::visibility_t (const visibility_t &from)
+{
+  visibilityFlag = from.visibilityFlag;
+  visibility = from.visibility;
+  visibilityParameters = from.visibilityParameters;
+  blackWhiteFlag = from.blackWhiteFlag;
+  visibilityShader = from.visibilityShader;
+}
+
+
+// assignment
+
+visibility_t& visibility_t::operator= (const visibility_t &from)
+{
+  visibilityFlag = from.visibilityFlag;
+  visibility = from.visibility;
+  visibilityParameters = from.visibilityParameters;
+  blackWhiteFlag = from.blackWhiteFlag;
+  visibilityShader = from.visibilityShader;
+}
+
 /*
 ===============================================================================
 
@@ -309,6 +360,11 @@ void idGameEdit::ParseSpawnArgsToRenderEntity( const idDict *args, renderEntity_
 			AddRenderGui( temp, &renderEntity->gui[ i ], args );
 		}
 	}
+
+	// gaius initialize the invisibility components
+	renderEntity->visibilityFlag = 0;  // not using the visibility shader
+	renderEntity->blackWhiteFlag = 0;  // not using black and white
+	// end of gaius' addition
 }
 
 /*
@@ -435,7 +491,113 @@ idEntity::idEntity() {
 	memset( &refSound, 0, sizeof( refSound ) );
 
 	mpGUIState = -1;
+
+	visibilityTime = gameLocal.time;   // gaius
 }
+
+// gaius' additional methods
+
+
+void idEntity::FlipVisibility (void)
+{
+  visibility = buffered_visibility;
+  visibilityTime = gameLocal.time;
+}
+
+
+/*
+ *  SetInvisible - make entity invisible, but it still allows overlays.
+ */
+
+void idEntity::SetInvisible (void)
+{
+  idVec4 value;
+
+  // is this function necessary --fixme--
+  value.Zero ();
+  SetVisibility (value);  // full transparancy
+  SetBlackWhiteFlag (false);
+  SetVisibilityFlag (true); // turn it on
+}
+
+/*
+ *  SetVisible - make entity visible.
+ */
+
+void idEntity::SetVisible (void)
+{
+  // is this function necessary --fixme--
+  SetVisibilityFlag (false); // turn it off
+}
+
+/*
+ *  SetVisibilityFlag - use the visibility shader for rendering this entity.
+ *                      This must be on to enable any of the visibility shader
+ *                      features.
+ */
+
+bool idEntity::SetVisibilityFlag (bool value)
+{
+  bool old = buffered_visibility.visibilityFlag;
+
+  buffered_visibility.visibilityFlag = value;
+  return old;
+}
+
+/*
+ *  SetBlackWhiteFlag - entity will be rendered in black and white using the visibility
+ *                      shader.  Note the visibilityFlag must be turned on to enable
+ *                      this as well.
+ */
+
+bool idEntity::SetBlackWhiteFlag (bool flag)
+{
+  bool old = buffered_visibility.blackWhiteFlag;
+
+  buffered_visibility.blackWhiteFlag = flag;
+  return old;
+}
+
+/*
+ *  SetVisibility - return the old overriding alpha value and set it to the new value.
+ */
+
+idVec4 idEntity::SetVisibility (idVec4 value)
+{
+  idVec4 old = buffered_visibility.visibility;
+
+  buffered_visibility.visibility = value;
+  return old;
+}
+
+/*
+ *  GetVisibility - return the overriding alpha value.
+ */
+
+idVec4 idEntity::GetVisibility (void)
+{
+  return buffered_visibility.visibility;
+}
+
+/*
+ *  GetBlackWhiteFlag - is the entity to be rendered in black and white.
+ */
+
+bool idEntity::GetBlackWhiteFlag (void)
+{
+  return buffered_visibility.blackWhiteFlag;
+}
+
+/*
+ *  GetVisibilityFlag - return the visibility flag.
+ */
+
+bool idEntity::GetVisibilityFlag (void)
+{
+  return buffered_visibility.visibilityFlag;
+}
+
+// end of gaius' additional methods
 
 /*
 ================
@@ -1211,6 +1373,71 @@ void idEntity::UpdateModelTransform( void ) {
 	}
 }
 
+
+// gaius
+
+void idEntity::UpdateVisibilityValues (void)
+{
+  renderEntity.visibilityFlag = visibility.visibilityFlag;
+  renderEntity.blackWhiteFlag = visibility.blackWhiteFlag;
+  if (visibility.visibilityFlag)
+    {
+      // pass across the rgba components for the shader script.
+      renderEntity.shaderParms[SHADERPARM_RED] = visibility.visibility[0];
+      renderEntity.shaderParms[SHADERPARM_GREEN] = visibility.visibility[1];
+      renderEntity.shaderParms[SHADERPARM_BLUE] = visibility.visibility[2];
+      renderEntity.shaderParms[SHADERPARM_ALPHA] = visibility.visibility[3];
+
+      renderEntity.shaderParms[SHADERPARM_TIMESCALE] = 1.0f;
+      renderEntity.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.time );
+      renderEntity.shaderParms[SHADERPARM_TIME_OF_DEATH] = -MS2SEC( visibilityTime );
+
+      float end_time = MS2SEC( visibilityTime );
+
+      renderEntity.shaderParms[SHADERPARM_INV_TIME_START] = end_time;
+      for (int i = 0; i < 4; i++)
+	{
+	  end_time += visibility.visibilityParameters[i];
+	  renderEntity.shaderParms[SHADERPARM_INV_DURATION0 + i] = end_time;
+	}
+      renderEntity.shaderParms[SHADERPARM_INV_TIME_END] = MS2SEC( visibilityTime ) + end_time;
+      renderEntity.shaderParms[SHADERPARM_INV_TIME] = MS2SEC( gameLocal.time );
+      renderEntity.visibilityShader = visibility.visibilityShader;
+      renderEntity.customShader = visibility.visibilityShader;
+#if 0
+      gameLocal.Printf ("entity %d,  entity name %s,  visibility value %f,  shader %p,  flag %d, time of death %f, timeoffset %f, invtime %f, start %f, end %f\n",
+			entityNumber, GetName (), visibility[3], visibilityShader, visibilityFlag,
+			renderEntity.shaderParms[SHADERPARM_TIME_OF_DEATH],
+			renderEntity.shaderParms[SHADERPARM_TIMEOFFSET],
+			renderEntity.shaderParms[SHADERPARM_INV_TIME],
+			renderEntity.shaderParms[SHADERPARM_INV_TIME_START],
+			renderEntity.shaderParms[SHADERPARM_INV_TIME_END]);
+#endif
+
+    }
+  else
+    {
+      renderEntity.customShader = NULL;
+      renderEntity.visibilityShader = NULL;
+    }
+}
+
+
+// gaius
+
+void idEntity::SetVisibilityShader (const idMaterial *shader)
+{
+  buffered_visibility.visibilityShader = shader;
+  gameLocal.Printf ("idEntity::SetVisibilityShader  entity number: %d, entity name %s, visibilityTime %d\n",
+		    entityNumber, GetName (), visibilityTime);
+}
+
+
+idVec4 idEntity::SetVisibilityParameters (idVec4 value)
+{
+  buffered_visibility.visibilityParameters = value;
+}
+
 /*
 ================
 idEntity::UpdateModel
@@ -1218,6 +1445,8 @@ idEntity::UpdateModel
 */
 void idEntity::UpdateModel( void ) {
 	UpdateModelTransform();
+
+	UpdateVisibilityValues ();
 
 	// check if the entity has an MD5 model
 	idAnimator *animator = GetAnimator();
@@ -4951,6 +5180,7 @@ void idAnimatedEntity::Restore( idRestoreGame *savefile ) {
 	}
 }
 
+
 /*
 ================
 idAnimatedEntity::ClientPredictionThink
@@ -5172,6 +5402,7 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 	idVec3 origin, dir;
 	idMat3 axis;
 
+	gameLocal.Printf ("AddLocalDamageEffect\n");
 	axis = renderEntity.joints[jointNum].ToMat3() * renderEntity.axis;
 	origin = renderEntity.origin + renderEntity.joints[jointNum].ToVec3() * renderEntity.axis;
 
@@ -5205,7 +5436,7 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		gameLocal.BloodSplat( origin, dir, 64.0f, splat );
 	}
 
-#if 1
+#if 0
 	// (gaius) disabled this as we want to see the blood on the PythonBot.
 	// original comment below
 	// try diabling this sometime!
@@ -5222,7 +5453,7 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		if ( *decal != '\0' ) {
 			ProjectOverlay( origin, dir, 20.0f, decal );
 		}
-#if 1
+#if 0
 	}
 #endif
 

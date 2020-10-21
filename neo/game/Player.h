@@ -596,8 +596,12 @@ public:
 	int ChangeWeapon (int new_weapon); // gaius
 	// int SetSkinColor (const char *value);  // gaius (eventually let the bot choose by name)
 	bool SetSkinColor (int choice);  // gaius
-	void SetSkinAlpha (float value); // gaius
-
+	idVec4 SetVisibility (idVec4 value); // gaius
+	idVec4 SetVisibilityParameters (idVec4 value); // gaius
+	bool SetVisibilityFlag (bool value); // gaius
+        void GetSelfEntityNames (char *buffer, int length); // gaius
+        int SetVisibilityShader (char *buffer); // gaius
+        int FlipVisibility (void);  // gaius
 private:
 	jointHandle_t			hipJoint;
 	jointHandle_t			chestJoint;
