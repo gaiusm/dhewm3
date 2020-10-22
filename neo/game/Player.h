@@ -589,11 +589,13 @@ public:
 	bool isVisible (int entNo);  // gaius
 	int Fire (bool firing);   // gaius
 	int Ammo (void);  // gaius
+        int InventoryAmmo (int weapon_number);  // gaius
         int Turn (int angle, int angle_vel);   // gaius
 	int GetYaw (void);  // gaius
 	void doTurn (int angle);	// gaius
 	void select (int bitmask);  // gaius
 	int ChangeWeapon (int new_weapon); // gaius
+        int InventoryWeapon (int new_weapon);  // gaius
 	// int SetSkinColor (const char *value);  // gaius (eventually let the bot choose by name)
 	bool SetSkinColor (int choice);  // gaius
 	idVec4 SetVisibility (idVec4 value); // gaius
@@ -602,6 +604,7 @@ public:
         void GetSelfEntityNames (char *buffer, int length); // gaius
         int SetVisibilityShader (char *buffer); // gaius
         int FlipVisibility (void);  // gaius
+        bool BotDropWeapon (void) ; // gaius
 private:
 	jointHandle_t			hipJoint;
 	jointHandle_t			chestJoint;

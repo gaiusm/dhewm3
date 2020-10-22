@@ -1,3 +1,14 @@
+2020-10-22      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* neo/game/Player.cpp:  weapon api enhancement.
+	* neo/game/Player.h:  weapon api enhancement.
+	* neo/game/ai/pybot.cpp:  weapon api enhancement.
+	* neo/game/ai/pybot.h:  weapon api enhancement.
+	* python-bot/botbasic.py:  weapon api enhancement.
+	* python-bot/botcache.py:  weapon api enhancement.
+	* python-bot/botlib.py:  weapon api enhancement.
+	* python-bot/python_doommarine.py:  weapon api enhancement.
+
 2020-10-21      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* neo/CMakeLists.txt:  added commented out section to detect

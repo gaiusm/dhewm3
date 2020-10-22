@@ -410,9 +410,9 @@ class basic:
         return int (l)
 
     #
-    #  changeWeapon - change to weapon, n.
-    #                 Attempt to change to weapon, n.
-    #                 n is a number 0..maxweapon
+    #  changeWeapon - change to, weapon_number.
+    #                 Attempt to change to weapon_number
+    #                 which is a number 0..maxweapon
     #                 The return value is the amount
     #                 of ammo left for the weapon
     #                 >= 0 if the weapon exists
@@ -420,29 +420,56 @@ class basic:
     #                 the bots inventory.
     #
 
-    def changeWeapon (self, n):
+    def changeWeapon (self, weapon_number):
         if debug_protocol:
-            print("requesting change weapon to", n)
-        s = "change_weapon %d\n" % (n)
+            print("requesting change weapon to", weapon_number)
+        s = "change_weapon %d\n" % (weapon_number)
         self.s.send (s.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
             print("doom returned", l)
         return int (l)
 
-
     #
-    #  ammo - returns the amount of ammo for the current weapon.
+    #  inventoryWeapon - return True if bot has the weapon.
+    #                    Note that without ammo the bot cannot
+    #                    change to this weapon.
     #
 
-    def ammo (self):
+    def inventoryWeapon (self, weapon_number):
         if debug_protocol:
-            print("requesting ammo")
-        self.s.send ("ammo\n".encode ('utf-8'))
+            print ("requesting inventory_weapon ", weapon_number)
+        s = "inventory_weapon %d\n" % (weapon_number)
+        self.s.send (s.encode ('utf-8'))
         l = self.getLine ()
         if debug_protocol:
             print("doom returned", l)
+        return int (l) == 1
+
+
+    #
+    #  ammo - returns the amount of ammo for the weapon_number.
+    #
+
+    def ammo (self, weapon_number):
+        if debug_protocol:
+            print("requesting ammo")
+        s = "ammo %d\n" % (weapon_number)
+        self.s.send (s.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print ("doom returned", l)
         return int (l)
+
+    #
+    #  dropWeapon - returns True if the current weapon was dropped.
+    #
+
+    def dropWeapon (self):
+        if debug_protocol:
+            print ("requesting flipVisibility")
+        self.s.send ("drop_weapon\n".encode ('utf-8'))
+        return int (self.getLine ()) == 1
 
     #
     #  aim - aim weapon at player, i

@@ -4073,6 +4073,68 @@ void idPlayer::DropWeapon( bool died ) {
 	}
 }
 
+
+/*
+=================
+idPlayer::BotDropWeapon  (gaius) taken from DropWeapon and adapted.
+=================
+*/
+bool idPlayer::BotDropWeapon (void)
+{
+	idVec3 forward, up;
+	int inclip, ammoavailable;
+
+	assert( !gameLocal.isClient );
+
+	if ( spectating || weaponGone || weapon.GetEntity() == NULL ) {
+		return false;
+	}
+
+	if ( ( !weapon.GetEntity()->IsReady() ) || weapon.GetEntity()->IsReloading() ) {
+		return false;
+	}
+	// ammoavailable is how many shots we can fire
+	// inclip is which amount is in clip right now
+	ammoavailable = weapon.GetEntity()->AmmoAvailable();
+	inclip = weapon.GetEntity()->AmmoInClip();
+
+	// don't drop a grenade if we have none left
+	if ( !idStr::Icmp( idWeapon::GetAmmoNameForNum( weapon.GetEntity()->GetAmmoType() ), "ammo_grenades" ) && ( ammoavailable - inclip <= 0 ) ) {
+		return false;
+	}
+
+	// expect an ammo setup that makes sense before doing any dropping
+	// ammoavailable is -1 for infinite ammo, and weapons like chainsaw
+	// a bad ammo config usually indicates a bad weapon state, so we should not drop
+	// used to be an assertion check, but it still happens in edge cases
+	if ( ( ammoavailable != -1 ) && ( ammoavailable - inclip < 0 ) ) {
+		common->DPrintf( "idPlayer::DropWeapon: bad ammo setup\n" );
+		return false;
+	}
+	idEntity *item = NULL;
+
+	viewAngles.ToVectors( &forward, NULL, &up );
+	item = weapon.GetEntity()->DropItem( 250.0f * forward + 150.0f * up, 500, WEAPON_DROP_TIME, false );
+	if ( !item ) {
+		return false;
+	}
+	// set the appropriate ammo in the dropped object
+	const idKeyValue * keyval = item->spawnArgs.MatchPrefix( "inv_ammo_" );
+	if ( keyval ) {
+		item->spawnArgs.SetInt( keyval->GetKey(), ammoavailable );
+		idStr inclipKey = keyval->GetKey();
+		inclipKey.Insert( "inclip_", 4 );
+		item->spawnArgs.SetInt( inclipKey, inclip );
+	}
+	// remove from our local inventory completely
+	inventory.Drop( spawnArgs, item->spawnArgs.GetString( "inv_weapon" ), -1 );
+	weapon.GetEntity()->ResetAmmoClip();
+	NextWeapon();
+	weapon.GetEntity()->WeaponStolen();
+	weaponGone = true;
+	return true;
+}
+
 /*
 =================
 idPlayer::StealWeapon
@@ -7011,6 +7073,20 @@ int idPlayer::ChangeWeapon (int new_weapon)
 
 /*
 ==============
+idPlayer::InventoryAmmo  (gaius)
+==============
+ */
+
+int idPlayer::InventoryAmmo (int weapon_number)
+{
+  if (weapon_number >= 0 && weapon_number < MAX_WEAPONS)
+    return inventory.ammo[weapon_number];
+  return 0;
+}
+
+
+/*
+==============
 idPlayer::Ammo  (gaius)
 ==============
  */
@@ -7019,6 +7095,20 @@ int idPlayer::Ammo (void)
 {
   if (currentWeapon >= 0 && currentWeapon < MAX_WEAPONS)
     return inventory.ammo[currentWeapon];
+  return 0;
+}
+
+
+/*
+=============
+idPlayer::InventoryWeapon  (gaius)  return 1 if the bot has the weapon in its inventory.
+=============
+ */
+
+int idPlayer::InventoryWeapon (int new_weapon)
+{
+  if (new_weapon >= 0 && new_weapon < MAX_WEAPONS)
+    return ((inventory.weapons & (1 << new_weapon)) != 0);
   return 0;
 }
 

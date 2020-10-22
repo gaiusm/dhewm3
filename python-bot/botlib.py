@@ -646,6 +646,44 @@ class bot:
         return self._cache.isvisible (i)
 
     #
+    #  changeWeapon - change to, weapon_number.
+    #                 Attempt to change to weapon_number
+    #                 which is a number 0..maxweapon
+    #                 The return value is the amount
+    #                 of ammo left for the weapon
+    #                 >= 0 if the weapon exists
+    #                 or -1 if the weapon is not in
+    #                 the bots inventory.
+    #
+
+    def changeWeapon (self, weapon_number):
+        return self._cache.changeWeapon (weapon_number)
+
+    #
+    #  inventoryWeapon - return True if bot has the weapon.
+    #                    Note that without ammo the bot cannot
+    #                    change to this weapon.
+    #
+
+    def inventoryWeapon (self, weapon_number):
+        return self._cache.inventoryWeapon (weapon_number)
+
+
+    #
+    #  dropWeapon - returns True if the current weapon was dropped.
+    #
+
+    def dropWeapon (self):
+        return self._cache.dropWeapon ()
+
+    #
+    #  ammo - returns the amount of ammo for the weapon_number.
+    #
+
+    def ammo (self, weapon_number):
+        return self._cache.ammo (weapon_number)
+
+    #
     #  turn the visibility shader on/off.  value is a boolean.
     #
 

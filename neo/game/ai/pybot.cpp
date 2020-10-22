@@ -127,11 +127,11 @@ class item
   int stepVec (int velforward, int velright, int dist);
   int start_firing (void);
   int stop_firing (void);
-  int ammo (void);
+  int ammo (int weapon_number);
   int weapon (int new_weapon);
   int health (void);
   int angle (void);
-  void reload_weapon (void);
+  int reload_weapon (void);
   bool aim (idEntity *enemy);
   int turn (int angle, int angle_vel);
   idEntity *getIdEntity (void);
@@ -145,6 +145,9 @@ class item
   void getSelfEntityNames (char *buffer, int length);
   int setVisibilityShader (char *buffer);
   int flipVisibility (void);
+  int changeWeapon (int weapon_number);
+  int inventoryWeapon (int new_weapon);
+  int dropWeapon (void);
 
  private:
   enum {item_none, item_monster, item_player, item_ammo} kind;
@@ -348,16 +351,52 @@ int item::turn (int angle, int angle_vel)
 
 
 /*
- *  weapon - attempt to select weapon, new_weapon.
- *           If successful return the amount of ammo else return -1.
+ *  changeWeapon - attempt to select weapon, new_weapon.
+ *                 If successful return the amount of ammo else return -1.
  */
 
-int item::weapon (int new_weapon)
+int item::changeWeapon (int new_weapon)
 {
   switch (kind)
     {
     case item_player:
       return idplayer->ChangeWeapon (new_weapon);
+    }
+  assert (false);
+  return 0;
+}
+
+
+/*
+ *  inventoryWeapon - return 1 if the new_weapon is available for use by the bot.
+ *                    return 0 if the bot does not have new_weapon in its inventory.
+ */
+
+int item::inventoryWeapon (int new_weapon)
+{
+  switch (kind)
+    {
+    case item_player:
+      return idplayer->InventoryWeapon (new_weapon);
+    }
+  assert (false);
+  return 0;
+}
+
+
+/*
+ *  dropWeapon - return 1 if the current weapon was dropped.
+ *               return 0 if the bot does not have new_weapon in its inventory.
+ */
+
+int item::dropWeapon (void)
+{
+  switch (kind)
+    {
+    case item_player:
+      if (idplayer->BotDropWeapon ())
+	return 1;
+      return 0;
     }
   assert (false);
   return 0;
@@ -405,10 +444,20 @@ int item::stop_firing (void)
 
 
 /*
+ *  ammo - return the amount of ammo left for weapon_number.
  */
 
-int item::ammo (void)
+int item::ammo (int weapon_number)
 {
+  switch (kind)
+    {
+    case item_monster:
+      return 0;  // do monsters reload?
+      break;
+    case item_player:
+      return idplayer->InventoryAmmo (weapon_number);
+    }
+  assert (false);
   return 0;
 }
 
@@ -473,9 +522,19 @@ bool item::canSeeEntity (int entNo)
  *  reload_weapon
  */
 
-void item::reload_weapon (void)
+int item::reload_weapon (void)
 {
-
+  switch (kind)
+    {
+    case item_monster:
+      return 0;  // do monsters reload?
+      break;
+    case item_player:
+      idplayer->Reload ();
+      return idplayer->Ammo ();
+    }
+  assert (false);
+  return 0;
 }
 
 
@@ -641,14 +700,13 @@ class dict
   int start_firing (int id);
   int stop_firing (int id);
   int reload_weapon (int id);
-  int ammo (int id);
+  int ammo (int id, int weapon_number);
   int health (int id);
   int angle (int id);
   bool aim (int id, int enemy);
   int turn (int id, int angle, int angle_vel);
   void select (int id, int mask);
   int getHigh (void);
-  int weapon (int id, int new_weapon);
   int determineInstanceId (const char *name);
   bool canSeeEntity (int id, int entNo);
   idVec4 visibility (int id, idVec4 value);
@@ -657,6 +715,9 @@ class dict
   void getSelfEntityNames (int id, char *buffer, int length);
   int setVisibilityShader (int id, char *buffer);
   int flipVisibility (int id);
+  int inventoryWeapon (int id, int weapon_number);
+  int changeWeapon (int id, int weapon_number);
+  int dropWeapon (int id);
  private:
   item *entry[MAX_ENTRY];
   int high;
@@ -810,12 +871,12 @@ int dict::stop_firing (int id)
 
 
 /*
- *  ammo - return the ammo available for the current weapon.
+ *  ammo - return the ammo available for weapon_number.
  */
 
-int dict::ammo (int id)
+int dict::ammo (int id, int weapon_number)
 {
-  return entry[id]->ammo ();
+  return entry[id]->ammo (weapon_number);
 }
 
 
@@ -862,18 +923,6 @@ bool dict::aim (int id, int enemy)
 int dict::turn (int id, int angle, int angle_vel)
 {
   return entry[id]->turn (angle, angle_vel);
-}
-
-
-/*
- *  weapon - change to new_weapon and return the amount of
- *           ammo for this weapon.  -1 if the weapon is not
- *           in the inventory.
- */
-
-int dict::weapon (int id, int new_weapon)
-{
-  return entry[id]->weapon (new_weapon);
 }
 
 
@@ -967,6 +1016,35 @@ int dict::flipVisibility (int id)
 {
   return entry[id]->flipVisibility ();
 }
+
+
+int dict::inventoryWeapon (int id, int weapon_number)
+{
+  return entry[id]->inventoryWeapon (weapon_number);
+}
+
+
+int dict::changeWeapon (int id, int weapon_number)
+{
+  return entry[id]->changeWeapon (weapon_number);
+}
+
+
+int dict::dropWeapon (int id)
+{
+  return entry[id]->dropWeapon ();
+}
+
+
+/*
+ *  reload_weapon
+ */
+
+int dict::reload_weapon (int id)
+{
+  return entry[id]->reload_weapon ();
+}
+
 
 static dict *dictionary = NULL;
 
@@ -1873,8 +1951,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcStopFiring ();
   else if (strcmp (data, "reload_weapon") == 0)
     rpcReloadWeapon ();
-  else if (strcmp (data, "ammo") == 0)
-    rpcAmmo ();
+  else if (idStr::Cmpn (data, "ammo ", 5) == 0)
+    rpcAmmo (&data[5]);
   else if (idStr::Cmpn (data, "aim ", 4) == 0)
     rpcAim (&data[4]);
   else if (idStr::Cmpn (data, "turn ", 5) == 0)
@@ -1911,6 +1989,10 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcVisibilityParameters (&data[17]);
   else if (strcmp (data, "flipvisibility") == 0)
     rpcFlipVisibility ();
+  else if (idStr::Cmpn (data, "inventory_weapon ", 17) == 0)
+    rpcInventoryWeapon (&data[17]);
+  else if (strcmp (data, "drop_weapon") == 0)
+    rpcDropWeapon ();
   else
     {
       gameLocal.Printf ("data = \"%s\", len (data) = %d\n", data, (int) strlen (data));
@@ -2349,28 +2431,26 @@ void pyBotClass::rpcStopFiring (void)
  *  rpcAmmo - return the amount of ammo available for the current weapon.
  */
 
-void pyBotClass::rpcAmmo (void)
+void pyBotClass::rpcAmmo (const char *weapon_number)
 {
   char buf[1024];
-  int ammo;
+  int result = 0;
 
   if (protocol_debugging)
-    gameLocal.Printf ("rpcAmmo call by python\n");
-
+    gameLocal.Printf ("rpcAmmo %s\n", weapon_number);
   if (rpcId > 0)
-    ammo = dictionary->ammo (rpcId);
-  else
-    ammo = 0;
+    result = dictionary->ammo (rpcId, atoi (weapon_number));
 
-  idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcAmmo responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }
 
-
 /*
- *  rpcReloadWeapon - return the amount of ammo available for the current weapon
- *                    after reloading.
+ *  rpcReloadWeapon - reload the weapon and return the amount of ammo available
+ *                    for the current weapon after reloading.
  */
 
 void pyBotClass::rpcReloadWeapon (void)
@@ -2382,11 +2462,29 @@ void pyBotClass::rpcReloadWeapon (void)
     gameLocal.Printf ("rpcReloadWeapon\n");
 
   if (rpcId > 0)
-    ammo = dictionary->ammo (rpcId);   // --fixme-- this should call something else
+    ammo = dictionary->reload_weapon (rpcId);
   else
-    ammo = 0;  // this is not reload... --fixme--
+    ammo = 0;
 
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+void pyBotClass::rpcInventoryWeapon (const char *weapon_number)
+{
+  char buf[1024];
+  int result = 0;
+
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcInventoryWeapon %s\n", weapon_number);
+  if (rpcId > 0)
+    result = dictionary->inventoryWeapon (rpcId, atoi (weapon_number));
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcInventoryWeapon responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }
@@ -2672,10 +2770,31 @@ void pyBotClass::rpcChangeWeapon (char *data)
   int ammo = -1;
 
   if (weapon >= 0)
-    ammo = dictionary->weapon (rpcId, weapon);
+    ammo = dictionary->changeWeapon (rpcId, weapon);
   idStr::snPrintf (buf, sizeof (buf), "%d\n", ammo);
   if (protocol_debugging)
     gameLocal.Printf ("rpcChangeWeapon responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+
+/*
+ *  rpcDropWeapon - attempt to change weapon to the number in data.
+ *                  The amount of ammo is returned.  -1 means no weapon.
+ */
+
+void pyBotClass::rpcDropWeapon (void)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcDropWeapon call by python\n");
+
+  char buf[1024];
+
+  int result = dictionary->dropWeapon (rpcId);
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcDropWeapon responding with: %s\n", buf);
   buffer.pyput (buf);
   state = toWrite;
 }

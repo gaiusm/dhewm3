@@ -120,7 +120,7 @@ class pyBotClass
   void rpcStartFiring (void);
   void rpcStopFiring (void);
   void rpcReloadWeapon (void);
-  void rpcAmmo (void);
+  void rpcAmmo (const char *data);
   void rpcTurn (char *data);
   void rpcAngle (void);
   char *truncstr (char *name);
@@ -139,6 +139,8 @@ class pyBotClass
   void rpcSetVisibilityShader (char *data);
   void rpcVisibilityParameters (const char *value);
   void rpcFlipVisibility (void);
+  void rpcInventoryWeapon (const char *weapon_number);
+  void rpcDropWeapon (void);
   idVec4 strToidVec4 (const char *value);
   int instanceId;  // python class, instance id
   int rpcId;  // index into the rpc array

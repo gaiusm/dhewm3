@@ -7,6 +7,7 @@ import math
 import random
 
 debugTowards = True
+maxWeapons = 10
 
 
 #
@@ -239,6 +240,19 @@ def testVisibility (disappear, disappear_head, water, materialise, materialise_h
     time.sleep (3)             # wait for 3 seconds
 
 
+def goInvisible ():
+    bot.setvisibilityshader ("pulse/melt/model/player")
+    bot.visibilityFlag (True)
+    bot.visibilityParams ([3, 3])
+    bot.flipVisibility ()
+    bot.setvisibilityshader ("melt/model/player/green/body2inv")  # all players entities use disappear
+    bot.setvisibilityshader ("melt/model/player/green/head2inv", ["player2_head"])  #  change the head entity
+    bot.visibilityParams ([2])   # run visibility effects for a duration of .. seconds
+    bot.visibilityFlag (True)    # turn on the visibility flag for all player entities.
+    bot.flipVisibility ()        # now release all the above info to the renderer
+
+
+
 #
 #  visibilityExamples - some test examples to stress the visibility API.
 #
@@ -249,11 +263,36 @@ def visibilityExamples ():
                     "pulse/melt/model/player",
                     "melt/model/player/green/inv2body",
                     "melt/model/player/green/inv2head")
-    # testVisibility ("melt")  # works
-    # testVisibility ("melt/model/player", "visibility")
-    # testVisibility ("melt/models/characters/player/body2")
-    # testVisibility ("visibility")
-    # testVisibility ("textures/stone/sand01")
+
+def weaponInventory ():
+    holding_weapons = []
+    for weapon in range (0, maxWeapons):
+        if bot.inventoryWeapon (weapon):
+            holding_weapons += [weapon]
+    return holding_weapons
+
+
+def ammoInventory ():
+    holding_ammo = []
+    for weapon in range (0, maxWeapons):
+        amount = bot.ammo (weapon)
+        if amount >= 1:
+            holding_ammo += [amount]
+    return holding_ammo
+
+
+def weaponExamples ():
+    printf ("bot has the following weapons: ")
+    print (weaponInventory ())
+    printf ("\n")
+    printf ("bot has the following ammo: ")
+    print (ammoInventory ())
+    printf ("\n")
+    for weapon in weaponInventory ():
+        bot.changeWeapon (weapon)
+        time.sleep (3)
+        bot.dropWeapon ()
+        time.sleep (3)
 
 
 def execBot (useExceptions = True):
@@ -280,8 +319,11 @@ def botMain ():
     pen = bot.d2pv (pos)
     print ("pos = ", pos, "pen coords =", pen)
     print ("getselfentitynames =", bot.getselfentitynames ())
+
+    goInvisible ()
     while True:
-        visibilityExamples ()
+        # visibilityExamples ()
+        weaponExamples ()
         # guard_sentry ()
         # findAll ()
 

@@ -218,21 +218,22 @@ class cache:
         return self._basic.reload_weapon ()
 
     #
-    #  ammo - returns the amount of ammo for the current weapon.
+    #  ammo - returns the amount of ammo for the weapon_number.
     #
 
-    def ammo (self):
-        if 'ammo' not in self._dict:
-            self._dict['ammo'] = self._basic.ammo ()
-        return self._dict['ammo']
+    def ammo (self, weapon_number):
+        keystr = 'ammo %d' % weapon_number
+        if keystr not in self._dict:
+            self._dict[keystr] = self._basic.ammo (weapon_number)
+        return self._dict[keystr]
 
     #
-    #  aim - aim weapon at player, i
+    #  aim - aim weapon at player_number
     #
 
-    def aim (self, i):
+    def aim (self, player_number):
         print("cache aim")
-        return self._basic.aim (i)
+        return self._basic.aim (player_number)
 
     #
     #  angle - return the angle the bot is facing.
@@ -269,6 +270,32 @@ class cache:
     def delammo (self):
         self._dict.pop ('ammo', None)
 
+    #
+    #  inventoryWeapon - return True if bot has the weapon.
+    #                    Note that without ammo the bot cannot
+    #                    change to this weapon.
+    #
+
+    def inventoryWeapon (self, weapon_number):
+        if 'inventoryweapon' not in self._dict:
+            self._dict['inventoryweapon'] = self._basic.inventoryWeapon (weapon_number)
+        return self._dict['inventoryweapon']
+
+    #
+    #  changeWeapon - attempts to change to weapon_number.
+    #                 If successful the amount of ammo is returned
+    #                 else -1 is returned.
+    #
+
+    def changeWeapon (self, weapon_number):
+        return self._basic.changeWeapon (weapon_number)
+
+    #
+    #  dropWeapon - returns True if the current weapon was dropped.
+    #
+
+    def dropWeapon (self):
+        return self._basic.dropWeapon ()
 
     #
     #  getPenMapName - return the name of the current pen map.
