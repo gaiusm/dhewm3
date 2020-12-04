@@ -128,6 +128,7 @@ class item
   int start_firing (void);
   int stop_firing (void);
   int ammo (int weapon_number);
+  int stepUp (int vel, int dist);
   int weapon (int new_weapon);
   int health (void);
   int angle (void);
@@ -463,6 +464,27 @@ int item::ammo (int weapon_number)
 
 
 /*
+ *  make this bot perform a step up at speed, vel, over a distance, dist.
+ *  A negative vel is a crouch.
+ */
+
+int item::stepUp (int vel, int dist)
+{
+  switch (kind)
+    {
+#if 0
+    case item_monster:
+      return idai->stepUp (vel, dist);
+#endif
+    case item_player:
+      return idplayer->stepUp (vel, dist);
+    }
+  assert (false);
+  return 0;
+}
+
+
+/*
  *  health -
  */
 
@@ -701,6 +723,7 @@ class dict
   int stop_firing (int id);
   int reload_weapon (int id);
   int ammo (int id, int weapon_number);
+  int stepUp (int id, int vel, int dist);
   int health (int id);
   int angle (int id);
   bool aim (int id, int enemy);
@@ -877,6 +900,16 @@ int dict::stop_firing (int id)
 int dict::ammo (int id, int weapon_number)
 {
   return entry[id]->ammo (weapon_number);
+}
+
+
+/*
+ *  stepUp - steps up at speed, vel, over a, dist.
+ */
+
+int dict::stepUp (int id, int vel, int dist)
+{
+  return entry[id]->stepUp (vel, dist);
 }
 
 
@@ -1953,6 +1986,8 @@ void pyBotClass::interpretRemoteProcedureCall (char *data)
     rpcReloadWeapon ();
   else if (idStr::Cmpn (data, "ammo ", 5) == 0)
     rpcAmmo (&data[5]);
+  else if (idStr::Cmpn (data, "step_up", 7) == 0)
+    rpcStepUp (&data[7]);
   else if (idStr::Cmpn (data, "aim ", 4) == 0)
     rpcAim (&data[4]);
   else if (idStr::Cmpn (data, "turn ", 5) == 0)
@@ -2444,6 +2479,40 @@ void pyBotClass::rpcAmmo (const char *weapon_number)
   idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
   if (protocol_debugging)
     gameLocal.Printf ("rpcAmmo responding with: %s\n", buf);
+  buffer.pyput (buf);
+  state = toWrite;
+}
+
+/*
+ *  rpcStepUp
+ */
+
+void pyBotClass::rpcStepUp (char *data)
+{
+  if (protocol_debugging)
+    gameLocal.Printf ("rpcStepUp call by python: %s\n", data);
+
+  char buf[1024];
+  int result;
+  int dist = 0;
+  int vel = atoi (data);
+
+  if (rpcId > 0)
+    {
+      char *p = data;
+
+      // skip spaces
+      while ((p != NULL) && ((*p) != '\0') && ((*p) == ' '))
+	p++;
+      // now find the next space after the number.
+      p = index (p, ' ');
+      // after this space is the last number, dist
+      if ((p != NULL) && ((*p) != '\0'))
+	dist = atoi (p);
+      result = dictionary->stepUp (rpcId, vel, dist);
+    }
+
+  idStr::snPrintf (buf, sizeof (buf), "%d\n", result);
   buffer.pyput (buf);
   state = toWrite;
 }

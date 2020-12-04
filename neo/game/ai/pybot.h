@@ -121,6 +121,7 @@ class pyBotClass
   void rpcStopFiring (void);
   void rpcReloadWeapon (void);
   void rpcAmmo (const char *data);
+  void rpcStepUp (char *data);
   void rpcTurn (char *data);
   void rpcAngle (void);
   char *truncstr (char *name);

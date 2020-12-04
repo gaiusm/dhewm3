@@ -307,6 +307,21 @@ class basic:
 
 
     #
+    #  stepup - step up (or down).
+    #
+
+    def stepup (self, velocity, dist):
+        l = "step_up %d %d\n" % (velocity, dist)
+        if debug_protocol:
+            print ("requesting a", l)
+        self.s.send (l.encode ('utf-8'))
+        l = self.getLine ()
+        if debug_protocol:
+            print ("doom returned", l)
+        return int (l)
+
+
+    #
     #  stepvec - step along a vector at velocity [velforward, velright] for a, dist.
     #
 

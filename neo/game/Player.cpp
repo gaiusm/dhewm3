@@ -7101,6 +7101,31 @@ int idPlayer::Ammo (void)
 
 /*
 =============
+idPlayer::stepUp  (crouch or jump)
+       (gaius)
+=============
+ */
+
+int idPlayer::stepUp (int vel, int dist)
+{
+  int old = (int) usercmd.upmove;
+
+  // gameLocal.Printf( "stepUp %d %d\n", vel, dist );
+  usercmd.upmove = (signed char) vel;
+  usercmd.forwardmove = 0;
+  usercmd.rightmove = 0;
+  buttonMask = 0;
+  buttonMask |= BUTTON_RUN;
+  pulseCount.set_run (dist);
+  usercmd.buttons |= BUTTON_RUN;
+  gameLocal.usercmds[entityNumber] = usercmd;
+
+  return old;
+}
+
+
+/*
+=============
 idPlayer::InventoryWeapon  (gaius)  return 1 if the bot has the weapon in its inventory.
 =============
  */

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2017-2019
+# Copyright (C) 2017-2020
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -34,11 +34,14 @@ from botcache import cache
 from chvec import *
 from math import atan2, sqrt
 
-debugging = False
+debugging = True
 debugBulk = True
 
 pen2doom3units = 48   # inches per ascii square
 angle_offset = 0
+diagonal_scaling = 0.55
+vertical_horizontal_scaling = 0.55
+
 
 #
 #  sqr - return the square of x.
@@ -119,10 +122,15 @@ class bot:
         self._scale2DY = signOf (self._scaleY)
         print ("the 2D doom scale units are", self._scale2DX, "and", self._scale2DY)
         test = self.d2pv (spawnD3Player)
-        print ("  d2pv says", test)
         print ("the doom3 coordinate", spawnD3Python, "really maps onto", spawnPenPython)
-        test = self.d2pv (spawnD3Python)
-        print ("  d2pv says", test)
+        print ("the doom3 coordinate", spawnD3Player, "really maps onto", spawnPenPlayer)
+        print ("asserting spawn player coordinates on pen and doom3 maps match: ", end="")
+        assert (equVec (self.d2pv (spawnD3Player), spawnPenPlayer))
+        print ("passed")
+        print ("asserting spawn position of doom python bot coordinates on pen and doom3 maps match: ", end="")
+        assert (equVec (self.d2pv (spawnD3Python), spawnPenPython))
+        print ("passed")
+        print ("reversing transform d2pv (", spawnPenPython, ") ->", self.p2dv (spawnPenPython), " == ", spawnD3Python)
         # os.sys.exit (0)
 
     #
@@ -149,6 +157,15 @@ class bot:
 
     def getTag (self, name):
         return self._cache.getTag (name)
+
+
+    #
+    #  get_label_list - returns a list of all user defined labels used in the map.
+    #
+
+    def get_label_list (self):
+        return self._aas.get_label_list ()
+
 
     #
     #  me - return the bots entity, id.
@@ -182,32 +199,46 @@ class bot:
         return [p[0], p[1], p[2]]
 
     #
-    #  forward - step forward at velocity, vel, for dist, units.
+    #  stepup -
     #
 
-    def forward (self, vel, dist):
-        return self._cache.forward (vel, dist)
+    def stepup (self, velocity, dist):
+        return self._cache.stepup (velocity, dist)
 
     #
-    #  back - step back at velocity, vel, for dist, units.
+    #  crouch -
     #
 
-    def back (self, vel, dist):
-        return self._cache.back (vel, dist)
+    def crouch (self):
+        return self.stepup (-2, 4*12)
 
     #
-    #  left - step left at velocity, vel, for dist, units.
+    #  forward - step forward at velocity, for dist, units.
     #
 
-    def left (self, vel, dist):
-        return self._cache.left (vel, dist)
+    def forward (self, velocity, dist):
+        return self._cache.forward (velocity, dist)
 
     #
-    #  right - step right at velocity, vel, for dist, units.
+    #  back - step back at velocity, for dist, units.
     #
 
-    def right (self, vel, dist):
-        return self._cache.right (vel, dist)
+    def back (self, velocity, dist):
+        return self._cache.back (velocity, dist)
+
+    #
+    #  left - step left at, velocity, for dist, units.
+    #
+
+    def left (self, velocity, dist):
+        return self._cache.left (velocity, dist)
+
+    #
+    #  right - step right at velocity, for dist, units.
+    #
+
+    def right (self, velocity, dist):
+        return self._cache.right (velocity, dist)
 
     #
     #  atod3 - convert a penguin tower map angle into the doom3 angle.
@@ -221,8 +252,8 @@ class bot:
     #         0 up, 180 down, 90 left, 270 right.
     #
 
-    def turn (self, angle, angle_vel):
-        return self._cache.turn (self.atod3 (angle), angle_vel)
+    def turn (self, angle, angle_velocity):
+        return self._cache.turn (self.atod3 (angle), angle_velocity)
 
     #
     #  select - wait for any desired event:  legal events are
@@ -316,14 +347,14 @@ class bot:
         return angle
 
     #
-    #  turnface - turn and face vector.
+    #  turnface - turn and face vector.  The vec_doom _must_ be a doom vector.
     #
 
-    def turnface (self, v, vel = None):
+    def turnface (self, vec_doom, velocity = None):
         if debugging:
-            print("v =", v, end=' ')
-        angle = self._calcAngle (v)
-        if vel == None:
+            print("vec_doom =", vec_doom, end=' ')
+        angle = self._calcAngle (vec_doom)
+        if velocity == None:
             #
             #  we work out the quickest anti/clock turn to achieve correct orientation.
             #
@@ -339,7 +370,7 @@ class bot:
                 else:
                     self.turn (angle, -1)  # quicker to turn using -1
         else:
-            self.turn (angle, vel)
+            self.turn (angle, velocity)
 
 
     #
@@ -348,13 +379,13 @@ class bot:
     #
 
     def d2pv (self, v):
-        r = []
+        result = []
         if len (v) > 1:
             t = (float (v[0]) - self._offsetX) / self._scaleX
-            r = [t]
+            result = [t]
             t = (float (v[1]) - self._offsetY) / self._scaleY
-            r += [t]
-        return intVec (r)
+            result += [t]
+        return intVec (result)
 
 
     def midPen2Doom (self, p):
@@ -372,138 +403,77 @@ class bot:
         return pen2doom3units * u
 
     #
-    #  journey - move at velocity, vel, for a distance, dist
-    #            along the navigation route calculated in calcnav.
-    #            dist is in penguin tower units.  This function
-    #            will return early if the object moves position.
+    #  on_pen - in:  an object and a pen_coord
+    #           out:  True if the object is not None and it resides on pen_coord.
     #
 
-    def journey (self, vel, dist, obj):
+    def on_pen (self, obj, pen_coord):
+        return (obj != None) and (equVec (pen_coord, self.d2pv (self.getpos (obj))))
+
+    #
+    #  journey - move at velocity, for a distance_pen.
+    #            along the navigation route calculated in calcnav.
+    #            This function will return early if the obj moves position.
+    #
+
+    def journey (self, velocity, distance_pen, destination_pen, obj = None):
         self.reset ()
         if debugging:
             print ("journey along route", self._aas._route)
-        dest = self.d2pv (self.getpos (obj))
-        dist = self.p2d (dist) # convert to doom3 unit
+        if obj is None:
+            initial_obj_pen = None
+        else:
+            initial_obj_pen = self.d2pv (self.getpos (obj))  # if object moves off this grid square we early return
+        distance_doom = self.p2d (distance_pen) # convert to doom3 unit
+        self._aas._skipPos (self.d2pv (self.getpos (self.me ())))
         if debugging:
-            print ("aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest)
-        print ("aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest)
+            print ("aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "destination_pen =", destination_pen)
+            print ("distance_pen =", distance_pen)
         #
         #  keep stepping along route as long as the object does not move and we have dist units to move along
         #
-        while (dist > 0) and (vel != 0) and equVec (dest, self.d2pv (self.getpos (obj))) and (not equVec (self._aas.getHop (0), dest)):
+        while (distance_pen > 0) and (velocity != 0) and self.on_pen (obj, initial_obj_pen) and (not equVec (self._aas.getHop (0), destination_pen)):
+            if debugging:
+                print ("while loop: distance_pen =", distance_pen)
             v = subVec (self.d2pv (self.getpos (self.me ())), self._aas.getHop (0))
             hopPos = self._aas.getHop (0)
             hops = 1
             while (hops < self._aas.noOfHops ()) and equVec (subVec (hopPos, self._aas.getHop (hops)), v):
                 hopPos = self._aas.getHop (hops)
                 hops += 1
-            if hops == 1:
-                if debugging:
-                    print("single hop nav")
-                dist = self.ssNav (vel, dist, self._aas.getHop (0))
-                if debugging:
-                    print("old journey route", self._aas._route)
-                    print("journey: reached coord", self._aas.getHop (0))
-                self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
-                if debugging:
-                    print("new journey route", self._aas._route)
-            else:
-                if debugging:
-                    print("bulk hop nav", hops)
-                dist = self.ssBulkNav (vel, self._aas.getHop (hops-1), hops)
-                if dist > 0:
-                    self.reset ()
-                    mypos = self.d2pv (self.getpos (self.me ()))
-                    for h in range (hops):
-                        if equVec (mypos, self._aas.getHop (h)):
-                            for i in range (h):
-                                self._aas.removeHop (0, self._aas.getHop (0))
-                            break
+            if debugging:
+                print("bulk hop nav", self._aas.getHop (hops-1), hops)
+                print("aas._route = ", self._aas._route)
+            distance_pen = self.ssBulkNav (velocity, self._aas.getHop (hops-1), hops)
+            if debugging:
+                print("bulk hop nav: distance_pen =", distance_pen)
+            if distance_pen > 0:
+                self.reset ()
+                mypos = self.d2pv (self.getpos (self.me ()))
+                for h in range (hops):
+                    if equVec (mypos, self._aas.getHop (h)):
+                        for i in range (h):
+                            self._aas.removeHop (0, self._aas.getHop (0))
+                        hops = 0  #  use first hop as we have discarded hops 0..h-1
+                        self._aas._skipPos (self.d2pv (self.getpos (self.me ())))
+                        break
                     else:
                         if debugging:
                             print("oops fallen off the route, aborting and will try again")
                         return
-                    hops = 0
-                    if debugging:
-                        print("new journey route", self._aas._route)
+                if debugging:
+                    print("new journey route", self._aas._route)
         if debugging:
-            if dist == 0:
-                print("journey algorithm ran out of distance")
-            elif equVec (dest, self.d2pv (self.getpos (obj))):
+            print ("destination_pen =", destination_pen)
+            if equVec (destination_pen, self.d2pv (self.getpos (self.me ()))):
                 print("journey algorithm reached the goal object")
-            elif equVec (self._aas.getHop (0), dest):
+            elif equVec (self._aas.getHop (0), destination_pen):
                 print("journey algorithm reached intemediate hop")
-            else:
-                print("journey algorithm failed")
-        self.reset ()
-
-
-
-    #
-    #  journey_pos - move at velocity, vel, for a distance, dist
-    #                along the navigation route calculated in calcnav
-    #                to dest.  dist is in penguin tower units.
-    #                dest is a penguin tower coordinate.
-    #
-
-    def journey_pos (self, vel, dist, dest):
-        self.reset ()
-        if debugging:
-            print("journey along route", self._aas._route)
-        dist = self.p2d (dist) # convert to doom3 unit
-        if debugging:
-            print("aas.getHop (0) =", self._aas.getHop (0), "my pos =", self.d2pv (self.getpos (self.me ())), "dest =", dest)
-        #
-        #  keep stepping along route as long as we have dist units remaining
-        #
-        while (dist > 0) and (vel != 0) and (not equVec (self._aas.getHop (0), dest)):
-            v = subVec (self.d2pv (self.getpos (self.me ())), self._aas.getHop (0))
-            hopPos = self._aas.getHop (0)
-            hops = 1
-            while (hops < self._aas.noOfHops ()) and equVec (subVec (hopPos, self._aas.getHop (hops)), v):
-                hopPos = self._aas.getHop (hops)
-                hops += 1
-            if hops == 1:
-                if debugging:
-                    print("single hop nav")
-                dist = self.ssNav (vel, dist, self._aas.getHop (0))
-                if debugging:
-                    print("old journey route", self._aas._route)
-                    print("journey: reached coord", self._aas.getHop (0))
-                self._aas.removeHop (0, self.d2pv (self.getpos (self.me ())))
-                if debugging:
-                    print("new journey route", self._aas._route)
-            else:
-                if debugging:
-                    print("bulk hop nav", hops)
-                dist = self.ssBulkNav (vel, self._aas.getHop (hops-1), hops)
-                if dist > 0:
-                    self.reset ()
-                    mypos = self.d2pv (self.getpos (self.me ()))
-                    for h in range (hops):
-                        if equVec (mypos, self._aas.getHop (h)):
-                            for i in range (h):
-                                self._aas.removeHop (0, self._aas.getHop (0))
-                            break
-                    else:
-                        if debugging:
-                            print("oops fallen off the route, aborting and will try again")
-                        return
-                    hops = 0
-                    if debugging:
-                        print("new journey route", self._aas._route)
-        if debugging:
-            if dist == 0:
+            elif distance_pen == 0:
                 print("journey algorithm ran out of distance")
-            elif equVec (self._aas.getHop (0), dest):
-                print("journey algorithm reached intemediate hop")
             else:
                 print("journey algorithm failed")
         self.reset ()
-
-
-    def calcMidDist (dest):
-        botpos = self.getpos (self.me ())  # doom3 units
 
 
     def runArc (self, angle, dist):
@@ -514,103 +484,89 @@ class bot:
 
 
     #
-    #  ssNav - single square navigate, turn and move to position, h,
-    #          which should be an adjacent square.
+    #  ssBulkNav - multiple square navigate, turn and move to position.
     #
 
-    def ssNav (self, vel, dist, h):
+    def ssBulkNav (self, velocity, position_pen, noHops):
+        print ("ssBulkNav (velocity =", velocity, "position_pen =", position_pen, "noHops =", noHops)
         self.reset ()
-        initpos = self.d2pv (self.getpos (self.me ()))
+        initpos_doom = self.getpos (self.me ())
+        initpos_pen = self.d2pv (initpos_doom)
+        if equVec (position_pen, initpos_pen):
+            if debugBulk:
+                print("ssBulkNav: nothing to do bot at", initpos_pen, "trying to reach", position_pen)
+            #
+            #  already reached position
+            #
+            return 0
         count = 0
-        mypos = self.d2pv (self.getpos (self.me ()))
-        while (dist > 0) and (not equVec (h, mypos)):
-            print("bot at", mypos, "trying to reach", h)
-            mydoom = self.twoDdoom (self.getpos (self.me ()))
-            # hdoom = self.twoDdoom (self.midPen2Doom (h))
-            hdoom = self.midPen2Doom (h)
-            self.turnface (subVec (hdoom, mydoom))
-            self.select (["turn"])
-            if debugging:
-                print("completed turn along", subVec (h, mypos))
-            if dist > self.p2d (1)/2:
-                d = self.p2d (1)/2
-            else:
-                d = dist
-            self.forward (vel, d)
-            self.select (["move"])
-            if debugging:
-                print("completed forward", d, "units")
-            # time.sleep (2)
-            self.reset ()
-            dist -= d
-            mypos = self.d2pv (self.getpos (self.me ()))
-            if equVec (initpos, mypos):
-                if debugging:
-                    print("not moved substantially")
-                count += 1
-                if count == 4:
-                    if debugging:
-                        print("stuck, try again")
-                    self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
-                    return dist
-
-        if debugging:
-            if equVec (h, mypos):
-                print("bot has reached", h, "!!")
-        return dist
-
-
-    #
-    #  ssBulkNav - multiple square navigate, turn and move to position, h.
-    #
-
-    def ssBulkNav (self, vel, h, noHops):
-        self.reset ()
-        initpos = self.d2pv (self.getpos (self.me ()))
-        count = 0
-        mypos = self.d2pv (self.getpos (self.me ()))
-        d = 0
-        dist = 0
+        total_distance_pen = 0
         if debugBulk:
-            print("bot at", mypos, "trying to reach", h)
-        mydoom = self.twoDdoom (self.getpos (self.me ()))
-        hdoom = self.midPen2Doom (h)
-        self.turnface (subVec (hdoom, mydoom))
+            print("ssBulNav: bot at", initpos_pen, "trying to reach", position_pen)
+        me_2d = initpos_pen
+        pos_2d = position_pen
+        position_doom = self.p2dv (position_pen)
+        #
+        #  a fairly coarse grained turn, but it accurately represents our navigation
+        #
+        self.turnface (subVec (initpos_doom, position_doom))   # must use doom3 units for direction
         self.select (["turn"])
         if debugBulk:
-            print("completed turn along", subVec (h, mypos))
-        d = self.p2d (noHops)/2
-        # d = sqrt (sqr (mydoom[0] - hdoom[0]) + sqr (mydoom[1] - hdoom[1]))
-        self.forward (vel, d)
+            print("completed turn along", subVec (pos_2d, me_2d))
+        self.reset ()
+        print ("initpos_pen, position_pen=", initpos_pen, position_pen)
+        diff_pen = absVec (subVec (position_pen, initpos_pen))
+        diff_doom = absVec (subVec (position_doom, [initpos_doom[0], initpos_doom[1]]))
+        distance_pen = sqrt (sqr (diff_pen[0]) + sqr (diff_pen[1]))
+        distance_doom = sqrt (sqr (diff_doom[0]) + sqr (diff_doom[1])) * diagonal_scaling
+        self.forward (velocity, distance_doom)
         self.select (["move"])
         if debugBulk:
-            print("completed forward", d, "units")
+            print ("completed forward", distance_pen, "units")
         self.reset ()
-        mypos = self.d2pv (self.getpos (self.me ()))
-        if equVec (initpos, mypos):
+        mypos_pen = self.d2pv (self.getpos (self.me ()))
+        if equVec (initpos_pen, mypos_pen):
             if debugBulk:
-                print("not moved substantially")
-            count += 1
-            if count == 4:
-                if debugBulk:
-                    print("stuck, try again")
-                self.runArc (random.randint (0, 360), 100)  # random turn and run 100 inches
-                return 0
-        dist += d
+                print ("not moved substantially")
+            return 0
+        total_distance_pen += distance_pen
         if debugBulk:
-            if equVec (h, mypos):
-                print("bot has reached", h, "!!")
-        return dist
+            if equVec (position_pen, mypos_pen):
+                print ("bot has reached", position_pen, "!!")
+        return total_distance_pen
+
 
     #
-    #  twoDdoom - returns a 2D coordinate pair which has the precision of the doom3 coordinates (for X and Y)
-    #             but the axis is transformed to the same direction as the penguin tower coordinates.
+    #
     #
 
-    def twoDdoom (self, v):
-        assert (len (v) >= 2)
-        return [v[0] * self._scale2DX, v[1] * self._scale2DY]
+    def calcDistance (self, doom3_diff, current_pen, destination_pen):
+        print ("calculate distance from", current_pen, "to", destination_pen, "doom3 distance of", doom3_diff)
+        if (current_pen[0] == destination_pen[0]) or (current_pen[1] == destination_pen[1]):
+            #  horizontal/vertical movement
+            distance = sqrt (sqr (doom3_diff[0]) + sqr (doom3_diff[1])) * vertical_horizontal_scaling
+            print ("    horiz/vert result", distance)
+        else:
+            distance = sqrt (sqr (doom3_diff[0]) + sqr (doom3_diff[1])) * diagonal_scaling
+            print ("    diagonal result", distance)
+        return int (distance)
 
+    #
+    #  p2dv - penguin tower vector to doom3 vector (2D).
+    #
+
+    def p2dv (self, vec_pen):
+        assert (len (vec_pen) >= 2)
+        doom = [vec_pen[0] * self._scaleX + self._offsetX,
+                vec_pen[1] * self._scaleY + self._offsetY]
+        print ("   doom =", doom)
+        print ("   self._scale2DX =", self._scale2DX, "self._scale2DY =", self._scale2DY)
+        print ("   self._scaleX =", self._scaleX, "self._offsetX =", self._offsetX)
+        print ("   self._scaleY =", self._scaleY, "self._offsetY =", self._offsetY)
+        if not equVec (vec_pen, self.d2pv (doom)):
+            print ("p2dv assertion is about to fail", vec_pen, "!=", self.d2pv (doom))
+        assert (equVec (vec_pen, self.d2pv (doom)))
+        return doom
 
     #
     #  face - turn to face object, i.  If we are close we attempt to aim
@@ -618,14 +574,22 @@ class bot:
     #
 
     def face (self, i):
-        self.reset ()
-        p = self.twoDdoom (self.getpos (self.me ()))
-        h = self.twoDdoom (self.getpos (i))
-        self.turnface (subVec (h, p))
-        self.select (["turn"])
-        self.sync ()
+        self.face_position (self.getpos (i))
         self.aim (i)
 
+    #
+    #  face_position - turn and face the position_doom.
+    #
+
+    def face_position (self, position_doom):
+        self.reset ()
+        me_2d = self.getpos (self.me ())[:2]
+        pos_2d = position_doom[:2]
+        if debugging:
+            print ("face_position: ", me_2d, pos_2d)
+        self.turnface (subVec (me_2d, pos_2d))
+        self.select (["turn"])
+        self.sync ()
 
     #
     #  aim - aim at object, i.
@@ -659,6 +623,7 @@ class bot:
     def changeWeapon (self, weapon_number):
         return self._cache.changeWeapon (weapon_number)
 
+
     #
     #  inventoryWeapon - return True if bot has the weapon.
     #                    Note that without ammo the bot cannot
@@ -675,6 +640,44 @@ class bot:
 
     def dropWeapon (self):
         return self._cache.dropWeapon ()
+
+    #
+    #  startFiring - fire weapon
+    #                It returns the amount of ammo left.
+    #
+
+    def startFiring (self):
+        return self._cache.startFiring ()
+
+    #
+    #  stopFiring - stop firing weapon
+    #                It returns the amount of ammo left.
+    #
+
+    def stopFiring (self):
+        return self._cache.stopFiring ()
+
+    #
+    #  reloadWeapon - reload the current weapon
+    #                 It returns the amount of ammo left.
+    #
+
+    def reloadWeapon (self):
+        return self._cache.reloadWeapon ()
+
+    #
+    #  changeWeapon - change to, weapon_number.
+    #                 Attempt to change to weapon_number
+    #                 which is a number 0..maxweapon
+    #                 The return value is the amount
+    #                 of ammo left for the weapon
+    #                 >= 0 if the weapon exists
+    #                 or -1 if the weapon is not in
+    #                 the bots inventory.
+    #
+
+    def changeWeapon (self, weapon_number):
+        return self._cache.changeWeapon (weapon_number)
 
     #
     #  ammo - returns the amount of ammo for the weapon_number.

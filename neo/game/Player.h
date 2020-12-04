@@ -589,6 +589,7 @@ public:
 	bool isVisible (int entNo);  // gaius
 	int Fire (bool firing);   // gaius
 	int Ammo (void);  // gaius
+        int stepUp (int vel, int dist); // gaius
         int InventoryAmmo (int weapon_number);  // gaius
         int Turn (int angle, int angle_vel);   // gaius
 	int GetYaw (void);  // gaius

@@ -1,3 +1,10 @@
+2020-12-04      Gaius Mulley <gaius.mulley@southwales.ac.uk>
+
+	* python-bot/botlib.py: stepup introduced.  (journey) re-written
+	and changed the number of parameters.  (journey_pos) removed.
+	* bug fixes to navigation applied.
+	* python-bot/python_doommarine_walklabel.py:  New file.
+
 2020-10-22      Gaius Mulley <gaius.mulley@southwales.ac.uk>
 
 	* neo/game/Player.cpp:  weapon api enhancement.

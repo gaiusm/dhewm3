@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2017-2019
+# Copyright (C) 2017-2020
 #               Free Software Foundation, Inc.
 # This file is part of Chisel
 #
@@ -213,7 +213,6 @@ class aas:
 
     def updateKnowlege (self, b):
         self._recreateFloor (b)
-
 
     #
     #  _calcWeightings - calculate the movement cost matrix for all the area.
@@ -920,7 +919,7 @@ class aas:
 
     #
     #  getHop - return the location of the, hop, square used in the route.
-    #           return route[hop]   (which will be a 2d coordinate)
+    #           return route[hop]   (which will be a 2d pen coordinate)
     #
 
     def getHop (self, hop):
@@ -940,6 +939,15 @@ class aas:
             if equVec (p, self._route[i]):
                 del self._route[i]
 
+    #
+    #  _skipPos - in:  position.
+    #             out:  if position is the first hop and there is more
+    #                   than one hop then remove this hop.
+    #
+
+    def _skipPos (self, position):
+        if equVec (position, self.getHop (0)):
+            self.removeHop (0, position)
 
     #
     #  addChoice - adds a unique choice to the choices list
@@ -1063,6 +1071,18 @@ class aas:
                 if name == m[0]:
                     return m[1]
         return None
+
+    #
+    #  get_label_list - returns a list of all user defined labels used in the map.
+    #
+
+    def get_label_list (self):
+        label_list = []
+        for r in list (rooms.keys ()):
+            for label in list (rooms[r].labels):
+                label_list += [label]
+        return label_list
+
 
 
 def _runtests ():

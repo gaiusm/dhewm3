@@ -107,6 +107,7 @@ def move_towards (pos, velocity):
     if dist is None:
         if debugTowards:
             print ("cannot reach", pos, "bot moving randomly")
+            quit () # remove this once test is complete
         bot.turn (random.randint (-90, 90), 1)
         bot.select (["turn"])
         bot.forward (velocity, velocity)
@@ -295,6 +296,26 @@ def weaponExamples ():
         time.sleep (3)
 
 
+#
+#
+#
+
+def check_movement ():
+    me = bot.me ()
+    cur_pos_d3 = bot.getpos (me)  # doom3 position
+    cur_pos_pen = bot.d2pv (cur_pos_d3)  # penguin tower coords
+    print ("main program starting positions for bot")
+    print ("  cur_pos_d3 = ", cur_pos_d3, "cur_pos_pen", cur_pos_pen)
+    start_pos = bot.d2pv (bot.getpos (me))  # penguin tower coords
+    end_pos = addVec (start_pos, [5, -5])  # penguin tower coords
+    move_towards (end_pos, 300)
+    cur_pos_d3 = bot.getpos (me)  # doom3 position
+    cur_pos_pen = bot.d2pv (cur_pos_d3)  # penguin tower coords
+    print ("main program after moving 300 units")
+    print ("  cur_pos_d3 = ", cur_pos_d3, "cur_pos_pen", cur_pos_pen)
+    quit ()
+
+
 def execBot (useExceptions = True):
     if useExceptions:
         try:
@@ -320,10 +341,11 @@ def botMain ():
     print ("pos = ", pos, "pen coords =", pen)
     print ("getselfentitynames =", bot.getselfentitynames ())
 
-    goInvisible ()
+    check_movement ()
+    # goInvisible ()
     while True:
-        # visibilityExamples ()
         weaponExamples ()
+        visibilityExamples ()
         # guard_sentry ()
         # findAll ()
 

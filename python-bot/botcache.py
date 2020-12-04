@@ -164,6 +164,13 @@ class cache:
         return self.forward (-vel, dist)
 
     #
+    #  stepup - step up at velocity, vel, for dist, units.
+    #
+
+    def stepup (self, velocity, dist):
+        return self._basic.stepup (velocity, dist)
+
+    #
     #  stepvec - step forward at velocity, velforward and velright for
     #            dist, units.
     #
@@ -192,30 +199,48 @@ class cache:
         self.delpos (self.me ())
 
     #
-    #  start_firing - fire weapon
-    #                 It returns the amount of ammo left.
+    #  startFiring - fire weapon
+    #                It returns the amount of ammo left.
     #
 
-    def start_firing (self):
+    def startFiring (self):
         self.delammo ()
-        return self._basic.start_firing ()
+        return self._basic.startFiring ()
 
     #
     #  stop_firing - stop firing weapon
     #                It returns the amount of ammo left.
     #
 
-    def stop_firing (self):
+    def stopFiring (self):
         self.delammo ()
-        return self._basic.stop_firing ()
+        return self._basic.stopFiring ()
 
     #
-    #  reload_weapon - reload the current weapon
-    #                  It returns the amount of ammo left.
+    #  reloadWeapon - reload the current weapon
+    #                 It returns the amount of ammo left.
     #
 
-    def reload_weapon (self):
-        return self._basic.reload_weapon ()
+    def reloadWeapon (self):
+        return self._basic.reloadWeapon ()
+
+    #
+    #  inventoryWeapon - return True if bot has the weapon.
+    #                    Note that without ammo the bot cannot
+    #                    change to this weapon.
+    #
+
+    def inventoryWeapon (self, weapon_number):
+        return self._cache.inventoryWeapon (weapon_number)
+
+
+    #
+    #  dropWeapon - returns True if the current weapon was dropped.
+    #
+
+    def dropWeapon (self):
+        return self._cache.dropWeapon ()
+
 
     #
     #  ammo - returns the amount of ammo for the weapon_number.

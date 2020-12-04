@@ -106,3 +106,14 @@ def intVec (v):
     for e in v:
         r += [int (e)]
     return r
+
+
+#
+#  absVec - for each element convert to a positive integer.
+#
+
+def absVec (v):
+    r = []
+    for e in v:
+        r += [abs (e)]
+    return r
