@@ -488,7 +488,8 @@ class bot:
     #
 
     def ssBulkNav (self, velocity, position_pen, noHops):
-        print ("ssBulkNav (velocity =", velocity, "position_pen =", position_pen, "noHops =", noHops)
+        if debugBulk:
+            print ("ssBulkNav (velocity =", velocity, "position_pen =", position_pen, "noHops =", noHops)
         self.reset ()
         initpos_doom = self.getpos (self.me ())
         initpos_pen = self.d2pv (initpos_doom)
@@ -514,7 +515,8 @@ class bot:
         if debugBulk:
             print("completed turn along", subVec (pos_2d, me_2d))
         self.reset ()
-        print ("initpos_pen, position_pen=", initpos_pen, position_pen)
+        if debugBulk:
+            print ("initpos_pen, position_pen=", initpos_pen, position_pen)
         diff_pen = absVec (subVec (position_pen, initpos_pen))
         diff_doom = absVec (subVec (position_doom, [initpos_doom[0], initpos_doom[1]]))
         distance_pen = sqrt (sqr (diff_pen[0]) + sqr (diff_pen[1]))
@@ -541,14 +543,17 @@ class bot:
     #
 
     def calcDistance (self, doom3_diff, current_pen, destination_pen):
-        print ("calculate distance from", current_pen, "to", destination_pen, "doom3 distance of", doom3_diff)
+        if debugBulk:
+            print ("calculate distance from", current_pen, "to", destination_pen, "doom3 distance of", doom3_diff)
         if (current_pen[0] == destination_pen[0]) or (current_pen[1] == destination_pen[1]):
             #  horizontal/vertical movement
             distance = sqrt (sqr (doom3_diff[0]) + sqr (doom3_diff[1])) * vertical_horizontal_scaling
-            print ("    horiz/vert result", distance)
+            if debugBulk:
+                print ("    horiz/vert result", distance)
         else:
             distance = sqrt (sqr (doom3_diff[0]) + sqr (doom3_diff[1])) * diagonal_scaling
-            print ("    diagonal result", distance)
+            if debugBulk:
+                print ("    diagonal result", distance)
         return int (distance)
 
     #
@@ -559,11 +564,11 @@ class bot:
         assert (len (vec_pen) >= 2)
         doom = [vec_pen[0] * self._scaleX + self._offsetX,
                 vec_pen[1] * self._scaleY + self._offsetY]
-        print ("   doom =", doom)
-        print ("   self._scale2DX =", self._scale2DX, "self._scale2DY =", self._scale2DY)
-        print ("   self._scaleX =", self._scaleX, "self._offsetX =", self._offsetX)
-        print ("   self._scaleY =", self._scaleY, "self._offsetY =", self._offsetY)
         if not equVec (vec_pen, self.d2pv (doom)):
+            print ("   doom =", doom)
+            print ("   self._scale2DX =", self._scale2DX, "self._scale2DY =", self._scale2DY)
+            print ("   self._scaleX =", self._scaleX, "self._offsetX =", self._offsetX)
+            print ("   self._scaleY =", self._scaleY, "self._offsetY =", self._offsetY)
             print ("p2dv assertion is about to fail", vec_pen, "!=", self.d2pv (doom))
         assert (equVec (vec_pen, self.d2pv (doom)))
         return doom
