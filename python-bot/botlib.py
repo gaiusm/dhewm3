@@ -34,8 +34,8 @@ from botcache import cache
 from chvec import *
 from math import atan2, sqrt
 
-debugging = True
-debugBulk = True
+debugging = False
+debugBulk = False
 
 pen2doom3units = 48   # inches per ascii square
 angle_offset = 0
